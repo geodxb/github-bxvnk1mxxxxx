@@ -1,0 +1,26 @@
+{
+  "name": "Sam Hivanek",
+  "email": "sam@interactivebrokers.us",
+  "role": "governor",
+  "profilePic": "",
+  "country": "United States",
+  "location": "Connecticut",
+  "joinDate": "2025-01-09",
+  "initialDeposit": 0,
+  "currentBalance": 0,
+  "isActive": true,
+  "accountStatus": "Active",
+  "accountType": "Governor",
+  "governorLevel": "Supreme",
+  "permissions": {
+    "systemControl": true,
+    "accountManagement": true,
+    "financialAdjustments": true,
+    "userRoleChanges": true,
+    "systemSettings": true,
+    "auditAccess": true,
+    "emergencyControls": true
+  },
+  "createdAt": "2025-01-09T01:25:00.000Z",
+  "updatedAt": "2025-01-09T01:25:00.000Z"
+}

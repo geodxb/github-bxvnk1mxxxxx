@@ -1,0 +1,536 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper function to get user role from users collection
+    function getUserRole(userId) {
+      return get(/databases/$(database)/documents/users/$(userId)).data.role;
+    }
+    
+    // Helper functions for role-based access control
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isGovernor() {
+      return isAuthenticated() && 
+             (getUserRole(request.auth.uid) == 'governor' || 
+              request.auth.token.email == 'crisdoraodxb@gmail.com' ||
+              request.auth.token.email == 'sam@interactivebrokers.us');
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && 
+             (getUserRole(request.auth.uid) == 'admin' || 
+              request.auth.token.email == 'crisdoraodxb@gmail.com' ||
+              request.auth.token.email == 'sam@interactivebrokers.us');
+    }
+    
+    function isInvestor() {
+      return isAuthenticated() && getUserRole(request.auth.uid) == 'investor';
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    function isParticipant(participantsList) {
+      return isAuthenticated() && request.auth.uid in participantsList;
+    }
+    
+    // System Settings - Critical for app initialization
+    match /systemSettings/{document} {
+      // All authenticated users can read (needed for maintenance mode checks)
+      allow read: if request.auth != null;
+      // Only governor can write system settings
+      allow write: if isGovernor();
+    }
+    
+    // Governor-specific collections
+    match /accountFlags/{document} {
+      allow read, write: if isGovernor();
+      allow read: if isAdmin();
+    }
+    
+    match /documentRequests/{document} {
+      allow read, write: if isGovernor();
+      allow read: if isAdmin();
+      allow read: if isInvestor() && isOwner(resource.data.investorId);
+    }
+    
+    match /shadowBans/{document} {
+      allow read, write: if isGovernor();
+      allow read: if isAdmin();
+      allow read: if isInvestor() && isOwner(resource.data.investorId);
+    }
+    
+    match /governorActions/{document} {
+      allow read, write: if isGovernor();
+      allow read: if isAdmin();
+    }
+    
+    match /mt103Documents/{document} {
+      allow read, write: if isGovernor();
+      allow read: if isAdmin();
+    }
+    
+    // Account Creation Requests
+    match /accountCreationRequests/{requestId} {
+      // Allow creation by admin or governor
+      allow create: if isAdmin() || isGovernor();
+      // Allow read/update by admin or governor
+      allow read, update: if isAdmin() || isGovernor();
+    }
+    
+    // Audit Logs - Governor only access
+    match /auditLogs/{document} {
+      allow read, write: if isGovernor();
+    }
+    
+    // User Profiles (Investors, Admins, Governors)
+    match /users/{userId} {
+      // Any authenticated user can read their own profile (needed for role determination)
+      allow read: if request.auth != null && request.auth.uid == userId;
+      
+      // Governor: Full access to all user profiles (read, write, create, delete)
+      allow write: if isGovernor(); // This covers create, update, delete
+      allow read: if isGovernor();
+
+      // Admin: Can read all investor profiles, create new investors, update existing investors
+      allow read: if isAdmin();
+      allow create: if isAdmin() && request.resource.data.role == 'investor'; // Admin can create investor users
+      allow update: if isAdmin() && 
+                       resource.data.role == 'investor' &&
+                       // Prevent admins from modifying sensitive fields
+                       !('role' in request.resource.data.diff(resource.data).affectedKeys()) &&
+                       !('currentBalance' in request.resource.data.diff(resource.data).affectedKeys()) &&
+                       !('initialDeposit' in request.resource.data.diff(resource.data).affectedKeys()) &&
+                       !('accountFlags' in request.resource.data.diff(resource.data).affectedKeys());
+      
+      // Investor: Can read and update their own profile (excluding sensitive fields)
+      allow update: if isInvestor() && 
+                       isOwner(userId) &&
+                       // Prevent investors from modifying sensitive fields
+                       !('role' in request.resource.data.diff(resource.data).affectedKeys()) &&
+                       !('currentBalance' in request.resource.data.diff(resource.data).affectedKeys()) &&
+                       !('initialDeposit' in request.resource.data.diff(resource.data).affectedKeys()) &&
+                       !('accountStatus' in request.resource.data.diff(resource.data).affectedKeys()) &&
+                       !('accountFlags' in request.resource.data.diff(resource.data).affectedKeys());
+    }
+    
+    // Transactions
+    match /transactions/{transactionId} {
+      // Governor and Admin: Full access
+      allow read, write: if isGovernor() || isAdmin();
+      
+      // Investor: Can only read their own transactions
+      allow read: if isInvestor() && isOwner(resource.data.investorId);
+    }
+    
+    // Withdrawal Requests
+    match /withdrawalRequests/{requestId} {
+      // Governor and Admin: Full access
+      allow read, write: if isGovernor() || isAdmin();
+      
+      // Investor: Can create their own requests and read their own requests
+      allow create: if isInvestor() && isOwner(request.resource.data.investorId);
+      allow read: if isInvestor() && isOwner(resource.data.investorId);
+      // Investor can update their own pending requests (e.g., to cancel)
+      allow update: if isInvestor() && 
+                       isOwner(resource.data.investorId) &&
+                       resource.data.status == 'Pending';
+    }
+    
+    // Commissions - System generated, admin/governor access only
+    match /commissions/{commissionId} {
+      allow read, write: if isGovernor() || isAdmin();
+    }
+    
+    // Commission Withdrawals - Admin/Governor only
+    match /commissionWithdrawals/{withdrawalId} {
+      allow read, write: if isGovernor() || isAdmin();
+    }
+    
+    // Profile Change Requests
+    match /profileChangeRequests/{requestId} {
+      // Governor and Admin: Full access
+      allow read, write: if isGovernor() || isAdmin();
+      
+      // Investor: Can create and read their own requests
+      allow create: if isInvestor() && isOwner(request.resource.data.investorId);
+      allow read: if isInvestor() && isOwner(resource.data.investorId);
+    }
+    
+    // Account Closure Requests
+    match /accountClosureRequests/{requestId} {
+      // Governor and Admin: Full access
+      allow read, write: if isGovernor() || isAdmin();
+      
+      // Investor: Can create and read their own closure requests
+      allow create: if isInvestor() && isOwner(request.resource.data.investorId);
+      allow read: if isInvestor() && isOwner(resource.data.investorId);
+    }
+    
+    // Messaging System - Conversations
+    match /conversations/{conversationId} {
+      // Governor: Full access to all conversations
+      allow read, write: if isGovernor();
+      
+      // Admin and Investor: Can read/write only if they are participants
+      allow read, write: if (isAdmin() || isInvestor()) && 
+                            isParticipant(resource.data.participants);
+      
+      // Allow creation if user is one of the participants
+      allow create: if (isAdmin() || isInvestor()) && 
+                       isParticipant(request.resource.data.participants);
+    }
+    
+    // Messaging System - Messages
+    match /affiliateMessages/{messageId} {
+      // Governor: Full access to all messages
+      allow read, write: if isGovernor();
+      
+      // Admin and Investor: Can read messages in conversations they participate in
+      allow read: if (isAdmin() || isInvestor()) && 
+                     exists(/databases/$(database)/documents/conversations/$(resource.data.conversationId)) &&
+                     isParticipant(get(/databases/$(database)/documents/conversations/$(resource.data.conversationId)).data.participants);
+      
+      // Admin and Investor: Can create messages if they are the sender
+      allow create: if (isAdmin() || isInvestor()) && 
+                       isOwner(request.resource.data.senderId);
+    }
+    
+    // Support Credentials - Admin/Governor only
+    match /supportCredentials/{credentialId} {
+      allow read, write: if isGovernor() || isAdmin();
+    }
+    
+    // Bank Account Verification - Admin/Governor manage, Investor can read their own
+    match /bankAccountVerifications/{verificationId} {
+      allow read, write: if isGovernor() || isAdmin();
+      allow read: if isInvestor() && isOwner(resource.data.investorId);
+      allow create: if isInvestor() && isOwner(request.resource.data.investorId);
+    }
+    
+    // W-8 BEN Forms - Admin/Governor manage, Investor can submit their own
+    match /w8benForms/{formId} {
+      allow read, write: if isGovernor() || isAdmin();
+      allow read: if isInvestor() && isOwner(resource.data.investorId);
+      allow create: if isInvestor() && isOwner(request.resource.data.investorId);
+      allow update: if isInvestor() && 
+                       isOwner(resource.data.investorId) &&
+                       resource.data.status == 'pending';
+    }
+    
+    // Document Uploads - Users can upload their own documents
+    match /documentUploads/{uploadId} {
+      allow read, write: if isGovernor() || isAdmin();
+      allow read: if isInvestor() && isOwner(resource.data.uploadedBy);
+      allow create: if isInvestor() && isOwner(request.resource.data.uploadedBy);
+    }
+    
+    // Trading Data - Admin/Governor manage, Investor can read their own
+    match /tradingData/{dataId} {
+      allow read, write: if isGovernor() || isAdmin();
+      allow read: if isInvestor() && isOwner(resource.data.investorId);
+    }
+    
+    // Performance Reports - Admin/Governor only
+    match /performanceReports/{reportId} {
+      allow read, write: if isGovernor() || isAdmin();
+    }
+    
+    // Notification Settings - Users can manage their own
+    match /notificationSettings/{userId} {
+      allow read, write: if isGovernor();
+      allow read, write: if (isAdmin() || isInvestor()) && isOwner(userId);
+    }
+    
+    // Security Logs - Governor only
+    match /securityLogs/{logId} {
+      allow read, write: if isGovernor();
+    }
+    
+    // System Monitoring Data - Governor only
+    match /systemMonitoring/{monitorId} {
+      allow read, write: if isGovernor();
+    }
+    
+    // API Keys and Sensitive Configuration - Governor only
+    match /apiKeys/{keyId} {
+      allow read, write: if isGovernor();
+    }
+    
+    // Backup and Recovery Data - Governor only
+    match /backups/{backupId} {
+      allow read, write: if isGovernor();
+    }
+    
+    // Compliance Reports - Admin/Governor only
+    match /complianceReports/{reportId} {
+      allow read, write: if isGovernor() || isAdmin();
+    }
+    
+    // Risk Management Data - Admin/Governor only
+    match /riskManagement/{riskId} {
+      allow read, write: if isGovernor() || isAdmin();
+    }
+    
+    // Platform Analytics - Admin/Governor only
+    match /platformAnalytics/{analyticsId} {
+      allow read, write: if isGovernor() || isAdmin();
+    }
+    
+    // User Sessions and Activity Tracking - Governor only
+    match /userSessions/{sessionId} {
+      allow read, write: if isGovernor();
+    }
+    
+    // Error Logs and Debugging - Governor only
+    match /errorLogs/{errorId} {
+      allow read, write: if isGovernor();
+    }
+    
+    // Feature Flags and A/B Testing - Governor only
+    match /featureFlags/{flagId} {
+      allow read: if isAuthenticated();
+      allow write: if isGovernor();
+    }
+    
+    // Rate Limiting and Throttling Data - Governor only
+    match /rateLimiting/{limitId} {
+      allow read, write: if isGovernor();
+    }
+    
+    // Integration Settings (Third-party APIs) - Governor only
+    match /integrationSettings/{integrationId} {
+      allow read, write: if isGovernor();
+    }
+    
+    // Webhook Configurations - Governor only
+    match /webhookConfigs/{webhookId} {
+      allow read, write: if isGovernor();
+    }
+    
+    // Email Templates and Communication - Admin/Governor only
+    match /emailTemplates/{templateId} {
+      allow read, write: if isGovernor() || isAdmin();
+    }
+    
+    // KYC Documents and Verification - Admin/Governor manage, Investor can submit
+    match /kycDocuments/{documentId} {
+      allow read, write: if isGovernor() || isAdmin();
+      allow read: if isInvestor() && isOwner(resource.data.investorId);
+      allow create: if isInvestor() && isOwner(request.resource.data.investorId);
+    }
+    
+    // Legal Documents and Contracts - Admin/Governor manage, Investor can read their own
+    match /legalDocuments/{documentId} {
+      allow read, write: if isGovernor() || isAdmin();
+      allow read: if isInvestor() && isOwner(resource.data.investorId);
+    }
+    
+    // Tax Forms and Reporting - Admin/Governor manage, Investor can submit their own
+    match /taxForms/{formId} {
+      allow read, write: if isGovernor() || isAdmin();
+      allow read: if isInvestor() && isOwner(resource.data.investorId);
+      allow create: if isInvestor() && isOwner(request.resource.data.investorId);
+    }
+    
+    // Bank Account Verifications - Admin/Governor manage, Investor can submit
+    match /bankVerifications/{verificationId} {
+      allow read, write: if isGovernor() || isAdmin();
+      allow read: if isInvestor() && isOwner(resource.data.investorId);
+      allow create: if isInvestor() && isOwner(request.resource.data.investorId);
+    }
+    
+    // Support Tickets - Admin/Governor manage, Investor can create and read their own
+    match /supportTickets/{ticketId} {
+      allow read, write: if isGovernor() || isAdmin();
+      allow read: if isInvestor() && isOwner(resource.data.submittedBy);
+      allow create: if isInvestor() && isOwner(request.resource.data.submittedBy);
+    }
+    
+    // Platform Announcements - Admin/Governor create, all can read
+    match /announcements/{announcementId} {
+      allow read: if isAuthenticated();
+      allow write: if isGovernor() || isAdmin();
+    }
+    
+    // Push Notifications - Users can read their own notifications
+    match /notifications/{notificationId} {
+      allow read: if isAuthenticated() && request.auth.uid == resource.data.userId;
+      allow write: if isGovernor() || isAdmin();
+    }
+    
+    // User Preferences and Settings - Users can manage their own
+    match /userPreferences/{userId} {
+      allow read, write: if isGovernor();
+      allow read, write: if (isAdmin() || isInvestor()) && isOwner(userId);
+    }
+    
+    // Trading Signals and Market Data - Admin/Governor manage, Investor can read
+    match /tradingSignals/{signalId} {
+      allow read: if isAuthenticated();
+      allow write: if isGovernor() || isAdmin();
+    }
+    
+    // Market Analysis and Research - Admin/Governor manage, Investor can read
+    match /marketAnalysis/{analysisId} {
+      allow read: if isAuthenticated();
+      allow write: if isGovernor() || isAdmin();
+    }
+    
+    // Portfolio Allocations - Admin/Governor manage, Investor can read their own
+    match /portfolioAllocations/{allocationId} {
+      allow read, write: if isGovernor() || isAdmin();
+      allow read: if isInvestor() && isOwner(resource.data.investorId);
+    }
+    
+    // Risk Assessments - Admin/Governor manage, Investor can read their own
+    match /riskAssessments/{assessmentId} {
+      allow read, write: if isGovernor() || isAdmin();
+      allow read: if isInvestor() && isOwner(resource.data.investorId);
+    }
+    
+    // Compliance Checks - Admin/Governor only
+    match /complianceChecks/{checkId} {
+      allow read, write: if isGovernor() || isAdmin();
+    }
+    
+    // Fraud Detection Data - Governor only
+    match /fraudDetection/{detectionId} {
+      allow read, write: if isGovernor();
+    }
+    
+    // System Health Monitoring - Governor only
+    match /systemHealth/{healthId} {
+      allow read, write: if isGovernor();
+    }
+    
+    // Database Backups - Governor only
+    match /databaseBackups/{backupId} {
+      allow read, write: if isGovernor();
+    }
+    
+    // User Activity Logs - Governor only
+    match /userActivityLogs/{logId} {
+      allow read, write: if isGovernor();
+    }
+    
+    // Financial Reports - Admin/Governor only
+    match /financialReports/{reportId} {
+      allow read, write: if isGovernor() || isAdmin();
+    }
+    
+    // Regulatory Compliance - Admin/Governor only
+    match /regulatoryCompliance/{complianceId} {
+      allow read, write: if isGovernor() || isAdmin();
+    }
+    
+    // Third-party Integrations - Governor only
+    match /thirdPartyIntegrations/{integrationId} {
+      allow read, write: if isGovernor();
+    }
+    
+    // Payment Processing Data - Admin/Governor only
+    match /paymentProcessing/{paymentId} {
+      allow read, write: if isGovernor() || isAdmin();
+    }
+    
+    // Currency Exchange Rates - All can read, Admin/Governor can write
+    match /exchangeRates/{rateId} {
+      allow read: if isAuthenticated();
+      allow write: if isGovernor() || isAdmin();
+    }
+    
+    // Platform Statistics - Admin/Governor only
+    match /platformStatistics/{statId} {
+      allow read, write: if isGovernor() || isAdmin();
+    }
+    
+    // User Feedback and Reviews - Admin/Governor manage, Investor can submit
+    match /userFeedback/{feedbackId} {
+      allow read, write: if isGovernor() || isAdmin();
+      allow create: if isInvestor() && isOwner(request.resource.data.submittedBy);
+      allow read: if isInvestor() && isOwner(resource.data.submittedBy);
+    }
+    
+    // Educational Content - All can read, Admin/Governor can write
+    match /educationalContent/{contentId} {
+      allow read: if isAuthenticated();
+      allow write: if isGovernor() || isAdmin();
+    }
+    
+    // News and Updates - All can read, Admin/Governor can write
+    match /newsUpdates/{newsId} {
+      allow read: if isAuthenticated();
+      allow write: if isGovernor() || isAdmin();
+    }
+    
+    // Platform Maintenance Schedules - All can read, Governor can write
+    match /maintenanceSchedules/{scheduleId} {
+      allow read: if isAuthenticated();
+      allow write: if isGovernor();
+    }
+    
+    // Security Incidents - Governor only
+    match /securityIncidents/{incidentId} {
+      allow read, write: if isGovernor();
+    }
+    
+    // Data Export Requests - Admin/Governor manage, Investor can request their own data
+    match /dataExportRequests/{exportId} {
+      allow read, write: if isGovernor() || isAdmin();
+      allow create: if isInvestor() && isOwner(request.resource.data.requestedBy);
+      allow read: if isInvestor() && isOwner(resource.data.requestedBy);
+    }
+    
+    // GDPR and Privacy Requests - Admin/Governor manage, Investor can submit
+    match /privacyRequests/{requestId} {
+      allow read, write: if isGovernor() || isAdmin();
+      allow create: if isInvestor() && isOwner(request.resource.data.submittedBy);
+      allow read: if isInvestor() && isOwner(resource.data.submittedBy);
+    }
+    
+    // Platform Metrics and KPIs - Admin/Governor only
+    match /platformMetrics/{metricId} {
+      allow read, write: if isGovernor() || isAdmin();
+    }
+    
+    // User Onboarding Progress - Admin/Governor manage, Investor can read/update their own
+    match /onboardingProgress/{progressId} {
+      allow read, write: if isGovernor() || isAdmin();
+      allow read, update: if isInvestor() && isOwner(resource.data.investorId);
+    }
+    
+    // Account Verification Status - Admin/Governor manage, Investor can read their own
+    match /accountVerifications/{verificationId} {
+      allow read, write: if isGovernor() || isAdmin();
+      allow read: if isInvestor() && isOwner(resource.data.investorId);
+    }
+    
+    // Trading Permissions - Admin/Governor only
+    match /tradingPermissions/{permissionId} {
+      allow read, write: if isGovernor() || isAdmin();
+      allow read: if isInvestor() && isOwner(resource.data.investorId);
+    }
+    
+    // Withdrawal Limits and Restrictions - Admin/Governor only
+    match /withdrawalLimits/{limitId} {
+      allow read, write: if isGovernor() || isAdmin();
+      allow read: if isInvestor() && isOwner(resource.data.investorId);
+    }
+    
+    // Account Flags and Restrictions - Admin/Governor only
+    match /accountFlags/{flagId} {
+      allow read, write: if isGovernor() || isAdmin();
+      allow read: if isInvestor() && isOwner(resource.data.investorId);
+    }
+    
+    // Catch-all rule for any other collections - Governor has full access
+    match /{document=**} {
+      allow read, write: if isGovernor();
+    }
+  }
+}
