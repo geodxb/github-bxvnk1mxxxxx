@@ -383,7 +383,7 @@ export class FirestoreService {
       if (withdrawalId) {
         // Use custom ID if provided
         docRef = doc(db, 'withdrawalRequests', withdrawalId);
-        await updateDoc(docRef, requestData);
+        await setDoc(docRef, requestData);
       } else {
         // Auto-generate ID
         docRef = await addDoc(collection(db, 'withdrawalRequests'), requestData);
