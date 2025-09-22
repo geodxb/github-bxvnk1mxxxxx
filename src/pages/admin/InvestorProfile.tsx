@@ -40,6 +40,7 @@ const InvestorProfile = () => {
   const { investor: investorData, loading, error, refetch } = useInvestor(id || '');
   const { transactions } = useTransactions(id || '');
   const { closureRequest } = useAccountClosure(id || '');
+  const { user } = useAuth();
   
   if (loading) {
     return (
