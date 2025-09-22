@@ -547,15 +547,15 @@ const InvestorProfile = () => {
                   <button
                     onClick={handleCheckProStatus}
                     disabled={isCheckingProStatus}
-                    className="px-4 py-2 bg-blue-600 text-white font-medium hover:bg-blue-700 transition-colors rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="px-4 py-2 bg-blue-600 text-white font-medium hover:bg-blue-700 transition-colors rounded-lg disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-wide"
                   >
                     {isCheckingProStatus ? (
                       <div className="flex items-center">
                         <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                        Checking...
+                        UPGRADING...
                       </div>
                     ) : (
-                      'Check Pro Status'
+                      'UPGRADE TO PRO'
                     )}
                   </button>
                 )}
