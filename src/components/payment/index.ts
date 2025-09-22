@@ -1,7 +1,8 @@
-export { PaymentScreen } from './PaymentScreen';
-export { CardBrandIcon } from './CardBrandIcon';
-export { PaymentDetailsForm } from './PaymentDetailsForm';
-export { PaymentLinkGenerator } from './PaymentLinkGenerator';
-export { PaymentReceipt } from './PaymentReceipt';
-export * from './types';
-export * from './utils/cardValidation';
+// Export all payment components
+export { default as PaymentDetailsForm } from './PaymentDetailsForm';
+export { default as PaymentLinkGenerator } from './PaymentLinkGenerator';
+export { default as PaymentScreen } from './PaymentScreen';
+export { default as PaymentReceipt } from './PaymentReceipt';
+
+// Export types
+export type { PaymentDetails, PaymentData, PaymentResult } from './types';

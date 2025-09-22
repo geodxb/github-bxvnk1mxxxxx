@@ -1,190 +1,154 @@
 import React, { useState } from 'react';
-
-interface PaymentDetails {
-  description: string;
-  amount: number;
-  currency: string;
-  reference?: string;
-}
+import { PaymentDetails } from './types';
+import { DollarSign, FileText, User, Mail } from 'lucide-react';
 
 interface PaymentDetailsFormProps {
   onSubmit: (details: PaymentDetails) => void;
-  className?: string;
 }
 
-export const PaymentDetailsForm: React.FC<PaymentDetailsFormProps> = ({
-  onSubmit,
-  className = ''
-}) => {
-  const [details, setDetails] = useState<PaymentDetails>({
-    description: '',
-    amount: 0,
+const PaymentDetailsForm: React.FC<PaymentDetailsFormProps> = ({ onSubmit }) => {
+  const [formData, setFormData] = useState({
+    amount: '',
     currency: 'USD',
-    reference: ''
+    description: '',
+    recipientName: '',
+    recipientEmail: ''
   });
 
-  const [errors, setErrors] = useState<{[key: string]: string}>({});
-
-  const handleInputChange = (field: keyof PaymentDetails) => (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
-  ) => {
-    const value = field === 'amount' ? parseFloat(e.target.value) || 0 : e.target.value;
-    
-    setDetails(prev => ({
-      ...prev,
-      [field]: value
-    }));
-
-    // Clear error when user starts typing
-    if (errors[field]) {
-      setErrors(prev => ({
-        ...prev,
-        [field]: ''
-      }));
-    }
-  };
-
-  const validateForm = (): boolean => {
-    const newErrors: {[key: string]: string} = {};
-
-    if (!details.description.trim()) {
-      newErrors.description = 'Payment description is required';
-    }
-
-    if (details.amount <= 0) {
-      newErrors.amount = 'Amount must be greater than 0';
-    }
-
-    if (details.amount > 999999.99) {
-      newErrors.amount = 'Amount cannot exceed 999,999.99';
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
+  const currencies = [
+    { code: 'USD', name: 'US Dollar', symbol: '$' },
+    { code: 'EUR', name: 'Euro', symbol: '€' },
+    { code: 'GBP', name: 'British Pound', symbol: '£' },
+    { code: 'MXN', name: 'Mexican Peso', symbol: '$' },
+    { code: 'AED', name: 'UAE Dirham', symbol: 'د.إ' },
+    { code: 'SAR', name: 'Saudi Riyal', symbol: '﷼' },
+    { code: 'CHF', name: 'Swiss Franc', symbol: 'CHF' }
+  ];
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (validateForm()) {
-      onSubmit(details);
-    }
-  };
+    const details: PaymentDetails = {
+      amount: parseFloat(formData.amount),
+      currency: formData.currency,
+      description: formData.description,
+      recipientName: formData.recipientName || undefined,
+      recipientEmail: formData.recipientEmail || undefined
+    };
 
-  const formatAmount = (amount: number, currency: string) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: currency,
-    }).format(amount);
+    onSubmit(details);
   };
 
   return (
-    <div className={`max-w-md mx-auto bg-white rounded-2xl shadow-2xl p-8 ${className}`}>
-      <div className="text-center mb-8">
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">Payment Details</h1>
-        <p className="text-gray-600">Please provide payment information</p>
-      </div>
-
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Payment Description */}
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-gray-700">
-            Payment Description
-          </label>
-          <textarea
-            placeholder="Enter payment reason or description"
-            value={details.description}
-            onChange={handleInputChange('description')}
-            rows={3}
-            className={`w-full px-4 py-3 border-2 rounded-lg transition-all duration-200 resize-none ${
-              errors.description 
-                ? 'border-red-300 focus:border-red-500' 
-                : 'border-gray-200 focus:border-black focus:ring-4 focus:ring-gray-100'
-            }`}
-          />
-          {errors.description && (
-            <p className="text-sm text-red-600">{errors.description}</p>
-          )}
+    <div className="max-w-2xl mx-auto">
+      <div className="bg-white rounded-lg shadow-lg border border-gray-200">
+        <div className="px-6 py-4 border-b border-gray-200">
+          <h2 className="text-xl font-bold text-gray-900">Payment Details</h2>
         </div>
+        
+        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Amount *
+              </label>
+              <div className="relative">
+                <DollarSign size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                <input
+                  type="number"
+                  value={formData.amount}
+                  onChange={(e) => setFormData(prev => ({ ...prev, amount: e.target.value }))}
+                  className="w-full pl-9 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="0.00"
+                  step="0.01"
+                  min="0.01"
+                  required
+                />
+              </div>
+            </div>
 
-        {/* Amount */}
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-gray-700">
-            Amount
-          </label>
-          <div className="relative">
-            <input
-              type="number"
-              step="0.01"
-              min="0.01"
-              max="999999.99"
-              placeholder="0.00"
-              value={details.amount || ''}
-              onChange={handleInputChange('amount')}
-              className={`w-full px-4 py-3 border-2 rounded-lg transition-all duration-200 ${
-                errors.amount 
-                  ? 'border-red-300 focus:border-red-500' 
-                  : 'border-gray-200 focus:border-black focus:ring-4 focus:ring-gray-100'
-              }`}
-            />
-          </div>
-          {errors.amount && (
-            <p className="text-sm text-red-600">{errors.amount}</p>
-          )}
-        </div>
-
-        {/* Currency */}
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-gray-700">
-            Currency
-          </label>
-          <select
-            value={details.currency}
-            onChange={handleInputChange('currency')}
-            className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-black focus:ring-4 focus:ring-gray-100 transition-all duration-200"
-          >
-            <option value="USD">USD - US Dollar</option>
-            <option value="EUR">EUR - Euro</option>
-            <option value="GBP">GBP - British Pound</option>
-            <option value="AED">AED - UAE Dirham</option>
-            <option value="SAR">SAR - Saudi Riyal</option>
-          </select>
-        </div>
-
-        {/* Reference Number */}
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-gray-700">
-            Reference Number (Optional)
-          </label>
-          <input
-            type="text"
-            placeholder="Enter reference number"
-            value={details.reference}
-            onChange={handleInputChange('reference')}
-            className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-black focus:ring-4 focus:ring-gray-100 transition-all duration-200"
-          />
-        </div>
-
-        {/* Amount Preview */}
-        {details.amount > 0 && (
-          <div className="bg-gray-50 p-4 rounded-lg">
-            <div className="flex justify-between items-center">
-              <span className="text-gray-600">Total Amount:</span>
-              <span className="text-2xl font-bold text-black">
-                {formatAmount(details.amount, details.currency)}
-              </span>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Currency *
+              </label>
+              <select
+                value={formData.currency}
+                onChange={(e) => setFormData(prev => ({ ...prev, currency: e.target.value }))}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                {currencies.map((currency) => (
+                  <option key={currency.code} value={currency.code}>
+                    {currency.code} - {currency.name}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
-        )}
 
-        {/* Submit Button */}
-        <button
-          type="submit"
-          className="w-full py-4 px-6 rounded-lg font-semibold text-white bg-black hover:bg-gray-800 active:transform active:scale-95 transition-all duration-200 shadow-lg hover:shadow-xl"
-        >
-          Proceed to Payment
-        </button>
-      </form>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Payment Description *
+            </label>
+            <div className="relative">
+              <FileText size={16} className="absolute left-3 top-3 text-gray-400" />
+              <textarea
+                value={formData.description}
+                onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                className="w-full pl-9 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                rows={3}
+                placeholder="Enter payment reason or description"
+                required
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Recipient Name (Optional)
+              </label>
+              <div className="relative">
+                <User size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  value={formData.recipientName}
+                  onChange={(e) => setFormData(prev => ({ ...prev, recipientName: e.target.value }))}
+                  className="w-full pl-9 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Enter recipient name"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Recipient Email (Optional)
+              </label>
+              <div className="relative">
+                <Mail size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                <input
+                  type="email"
+                  value={formData.recipientEmail}
+                  onChange={(e) => setFormData(prev => ({ ...prev, recipientEmail: e.target.value }))}
+                  className="w-full pl-9 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Enter recipient email"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="flex justify-end">
+            <button
+              type="submit"
+              disabled={!formData.amount || !formData.description.trim()}
+              className="px-6 py-3 bg-blue-600 text-white font-medium hover:bg-blue-700 transition-colors rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Continue to Payment
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 };
+
+export default PaymentDetailsForm;

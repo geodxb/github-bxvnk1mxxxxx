@@ -1,138 +1,159 @@
 import React from 'react';
-import type { PaymentData } from './types';
+import { CheckCircle, Download, Mail, ArrowLeft } from 'lucide-react';
 
 interface PaymentReceiptProps {
-  paymentData: PaymentData & {
-    description: string;
-    reference?: string;
-    transactionId: string;
-    timestamp: string;
-  };
+  paymentData: any;
   onNewPayment: () => void;
-  className?: string;
 }
 
-export const PaymentReceipt: React.FC<PaymentReceiptProps> = ({
-  paymentData,
-  onNewPayment,
-  className = ''
-}) => {
-  const formatAmount = (amount: number, currency: string) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: currency,
-    }).format(amount);
+const PaymentReceipt: React.FC<PaymentReceiptProps> = ({ paymentData, onNewPayment }) => {
+  const handleDownloadReceipt = () => {
+    // Create a simple receipt content
+    const receiptContent = `
+PAYMENT RECEIPT
+===============
+
+Transaction ID: ${paymentData.transactionId}
+Date: ${new Date(paymentData.timestamp).toLocaleString()}
+Amount: ${paymentData.currency} ${paymentData.amount.toLocaleString()}
+Description: ${paymentData.description}
+Payment Method: **** **** **** ${paymentData.cardNumber.slice(-4)}
+Cardholder: ${paymentData.cardHolderName}
+
+Status: COMPLETED
+    `;
+
+    const blob = new Blob([receiptContent], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `receipt-${paymentData.transactionId}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
-  const formatCardNumber = (number: string) => {
-    const cleanNumber = number.replace(/\s/g, '');
-    return `**** **** **** ${cleanNumber.slice(-4)}`;
-  };
-
-  const formatDate = (timestamp: string) => {
-    return new Date(timestamp).toLocaleString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit'
-    });
+  const handleEmailReceipt = () => {
+    const subject = `Payment Receipt - ${paymentData.transactionId}`;
+    const body = `Your payment of ${paymentData.currency} ${paymentData.amount.toLocaleString()} has been processed successfully.\n\nTransaction ID: ${paymentData.transactionId}\nDate: ${new Date(paymentData.timestamp).toLocaleString()}`;
+    
+    window.open(`mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`);
   };
 
   return (
-    <div className={`max-w-md mx-auto bg-white rounded-2xl shadow-2xl p-8 ${className}`}>
-      {/* Success Header */}
-      <div className="text-center mb-8">
-        <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-50 text-green-600 mb-4">
-          ✓
-        </div>
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">Payment Successful</h1>
-        <p className="text-gray-600">Your payment has been processed successfully</p>
-      </div>
-
-      {/* Receipt Details */}
-      <div className="space-y-6">
-        {/* Transaction ID */}
-        <div className="bg-gray-50 p-4 rounded-lg">
-          <div className="text-center">
-            <p className="text-sm text-gray-600 mb-1">Transaction ID</p>
-            <p className="font-mono text-lg font-semibold text-black">{paymentData.transactionId}</p>
+    <div className="max-w-2xl mx-auto">
+      <div className="bg-white rounded-lg shadow-lg border border-gray-200">
+        {/* Success Header */}
+        <div className="px-6 py-8 text-center bg-green-50 border-b border-green-200">
+          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <CheckCircle size={32} className="text-green-600" />
           </div>
+          <h2 className="text-2xl font-bold text-green-800 mb-2">Payment Successful!</h2>
+          <p className="text-green-600">Your payment has been processed successfully.</p>
         </div>
 
-        {/* Payment Summary */}
-        <div className="space-y-4">
-          <h2 className="text-lg font-semibold text-gray-900 border-b pb-2">Payment Summary</h2>
-          
-          <div className="space-y-3">
-            <div className="flex justify-between">
-              <span className="text-gray-600">Description:</span>
-              <span className="font-medium text-black text-right max-w-48 break-words">
-                {paymentData.description}
-              </span>
+        {/* Receipt Details */}
+        <div className="p-6">
+          <div className="space-y-6">
+            {/* Transaction Summary */}
+            <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+              <h3 className="font-semibold text-gray-900 mb-4">Transaction Summary</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span className="text-gray-600">Transaction ID:</span>
+                  <span className="font-mono font-semibold ml-2 block md:inline">
+                    {paymentData.transactionId}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-gray-600">Date & Time:</span>
+                  <span className="font-semibold ml-2 block md:inline">
+                    {new Date(paymentData.timestamp).toLocaleString()}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-gray-600">Amount:</span>
+                  <span className="font-bold text-lg text-green-600 ml-2">
+                    {paymentData.currency} {paymentData.amount.toLocaleString()}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-gray-600">Status:</span>
+                  <span className="font-semibold text-green-600 ml-2">COMPLETED</span>
+                </div>
+                <div className="md:col-span-2">
+                  <span className="text-gray-600">Description:</span>
+                  <span className="font-semibold ml-2 block md:inline">
+                    {paymentData.description}
+                  </span>
+                </div>
+              </div>
             </div>
-            
-            <div className="flex justify-between">
-              <span className="text-gray-600">Amount:</span>
-              <span className="font-bold text-black text-xl">
-                {formatAmount(paymentData.amount || 0, paymentData.currency || 'USD')}
-              </span>
+
+            {/* Payment Method */}
+            <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+              <h3 className="font-semibold text-gray-900 mb-4">Payment Method</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span className="text-gray-600">Card Number:</span>
+                  <span className="font-mono font-semibold ml-2">
+                    **** **** **** {paymentData.cardNumber.replace(/\s/g, '').slice(-4)}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-gray-600">Cardholder:</span>
+                  <span className="font-semibold ml-2">{paymentData.cardHolderName}</span>
+                </div>
+              </div>
             </div>
-            
-            {paymentData.reference && (
-              <div className="flex justify-between">
-                <span className="text-gray-600">Reference:</span>
-                <span className="font-medium text-black">{paymentData.reference}</span>
+
+            {/* Billing Address */}
+            {paymentData.billingAddress && (
+              <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                <h3 className="font-semibold text-gray-900 mb-4">Billing Address</h3>
+                <div className="text-sm text-gray-700">
+                  <p>{paymentData.billingAddress.street}</p>
+                  <p>
+                    {paymentData.billingAddress.city}, {paymentData.billingAddress.state} {paymentData.billingAddress.zipCode}
+                  </p>
+                  <p>{paymentData.billingAddress.country}</p>
+                </div>
               </div>
             )}
-            
-            <div className="flex justify-between">
-              <span className="text-gray-600">Payment Method:</span>
-              <span className="font-medium text-black">{formatCardNumber(paymentData.number)}</span>
+
+            {/* Action Buttons */}
+            <div className="flex flex-col sm:flex-row gap-3">
+              <button
+                onClick={handleDownloadReceipt}
+                className="flex-1 px-4 py-3 bg-blue-600 text-white font-medium hover:bg-blue-700 transition-colors rounded-lg flex items-center justify-center"
+              >
+                <Download size={16} className="mr-2" />
+                Download Receipt
+              </button>
+              <button
+                onClick={handleEmailReceipt}
+                className="flex-1 px-4 py-3 bg-gray-600 text-white font-medium hover:bg-gray-700 transition-colors rounded-lg flex items-center justify-center"
+              >
+                <Mail size={16} className="mr-2" />
+                Email Receipt
+              </button>
             </div>
-            
-            <div className="flex justify-between">
-              <span className="text-gray-600">Date & Time:</span>
-              <span className="font-medium text-black text-right text-sm">
-                {formatDate(paymentData.timestamp)}
-              </span>
+
+            <div className="text-center pt-4 border-t border-gray-200">
+              <button
+                onClick={onNewPayment}
+                className="px-6 py-2 text-blue-600 hover:text-blue-700 font-medium flex items-center justify-center mx-auto"
+              >
+                <ArrowLeft size={16} className="mr-2" />
+                Make Another Payment
+              </button>
             </div>
           </div>
         </div>
-
-        {/* Status */}
-        <div className="bg-green-50 p-4 rounded-lg">
-          <div className="flex justify-between items-center">
-            <span className="text-green-800 font-medium">Status:</span>
-            <span className="text-green-800 font-bold">COMPLETED</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Actions */}
-      <div className="mt-8 space-y-3">
-        <button
-          onClick={onNewPayment}
-          className="w-full py-3 px-6 rounded-lg font-semibold text-white bg-black hover:bg-gray-800 transition-all duration-200"
-        >
-          Make Another Payment
-        </button>
-        
-        <button
-          onClick={() => window.print()}
-          className="w-full py-3 px-6 rounded-lg font-semibold text-black bg-gray-100 hover:bg-gray-200 transition-all duration-200"
-        >
-          Print Receipt
-        </button>
-      </div>
-
-      {/* Footer */}
-      <div className="mt-6 text-center">
-        <p className="text-xs text-gray-500">
-          Keep this receipt for your records
-        </p>
       </div>
     </div>
   );
 };
+
+export default PaymentReceipt;

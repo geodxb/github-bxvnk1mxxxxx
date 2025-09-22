@@ -1,259 +1,317 @@
-import React, { useState, useCallback, useMemo } from 'react';
-import { CardBrandIcon } from './CardBrandIcon';
-import { 
-  formatCardNumber, 
-  formatExpiry, 
-  detectCardType, 
-  validateCard 
-} from './utils/cardValidation';
-import type { PaymentScreenProps, CardDetails, ValidationErrors } from './types';
+import React, { useState } from 'react';
+import { PaymentData } from './types';
+import { CreditCard, Lock, User, MapPin } from 'lucide-react';
 
-export const PaymentScreen: React.FC<PaymentScreenProps> = ({
-  amount = 0,
-  currency = 'USD',
-  onSubmit,
-  isLoading = false,
-  className = ''
-}) => {
-  const [cardDetails, setCardDetails] = useState<CardDetails>({
-    number: '',
-    name: '',
-    expiry: '',
-    cvv: ''
+interface PaymentScreenProps {
+  amount: number;
+  currency: string;
+  onSubmit: (data: PaymentData) => void;
+}
+
+const PaymentScreen: React.FC<PaymentScreenProps> = ({ amount, currency, onSubmit }) => {
+  const [formData, setFormData] = useState({
+    cardNumber: '',
+    expiryMonth: '',
+    expiryYear: '',
+    cvv: '',
+    cardHolderName: '',
+    billingAddress: {
+      street: '',
+      city: '',
+      state: '',
+      zipCode: '',
+      country: 'US'
+    }
   });
-  
-  const [errors, setErrors] = useState<ValidationErrors>({});
-  const [focusedField, setFocusedField] = useState<string | null>(null);
 
-  const cardType = useMemo(() => detectCardType(cardDetails.number), [cardDetails.number]);
+  const [isProcessing, setIsProcessing] = useState(false);
 
-  const handleInputChange = useCallback((field: keyof CardDetails) => (
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    const value = e.target.value;
-    
-    let formattedValue = value;
-    let maxLength = 50;
-
-    switch (field) {
-      case 'number':
-        formattedValue = formatCardNumber(value);
-        maxLength = cardType === 'amex' ? 17 : 19; // Including spaces
-        break;
-      case 'expiry':
-        formattedValue = formatExpiry(value);
-        maxLength = 5; // MM/YY
-        break;
-      case 'cvv':
-        formattedValue = value.replace(/\D/g, '');
-        maxLength = cardType === 'amex' ? 4 : 3;
-        break;
-      case 'name':
-        formattedValue = value.replace(/[^a-zA-Z\s]/g, '');
-        maxLength = 50;
-        break;
+  const formatCardNumber = (value: string) => {
+    const v = value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
+    const matches = v.match(/\d{4,16}/g);
+    const match = matches && matches[0] || '';
+    const parts = [];
+    for (let i = 0, len = match.length; i < len; i += 4) {
+      parts.push(match.substring(i, i + 4));
     }
-
-    if (formattedValue.length <= maxLength) {
-      setCardDetails(prev => ({
-        ...prev,
-        [field]: formattedValue
-      }));
-
-      // Clear error when user starts typing
-      if (errors[field]) {
-        setErrors(prev => ({
-          ...prev,
-          [field]: undefined
-        }));
-      }
+    if (parts.length) {
+      return parts.join(' ');
+    } else {
+      return v;
     }
-  }, [cardType, errors]);
+  };
+
+  const handleCardNumberChange = (value: string) => {
+    const formatted = formatCardNumber(value);
+    if (formatted.replace(/\s/g, '').length <= 16) {
+      setFormData(prev => ({ ...prev, cardNumber: formatted }));
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    const validationErrors = validateCard(cardDetails);
-    setErrors(validationErrors);
-    
-    if (Object.keys(validationErrors).length === 0) {
-      await onSubmit({
-        ...cardDetails,
-        amount,
-        currency
-      });
-    }
+    setIsProcessing(true);
+
+    // Simulate payment processing
+    setTimeout(() => {
+      onSubmit(formData);
+      setIsProcessing(false);
+    }, 2000);
   };
 
-  const formatAmount = (amount: number, currency: string) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: currency,
-    }).format(amount);
-  };
+  const currentYear = new Date().getFullYear();
+  const years = Array.from({ length: 10 }, (_, i) => currentYear + i);
+  const months = Array.from({ length: 12 }, (_, i) => {
+    const month = i + 1;
+    return { value: month.toString().padStart(2, '0'), label: month.toString().padStart(2, '0') };
+  });
 
   return (
-    <div className={`max-w-md mx-auto bg-white rounded-2xl shadow-2xl p-8 ${className}`}>
-      {/* Header */}
-      <div className="text-center mb-8">
-        <h1 className="text-2xl font-bold text-gray-900 mb-4">Payment Information</h1>
-        {amount > 0 && (
-          <p className="text-3xl font-bold text-black">{formatAmount(amount, currency)}</p>
-        )}
-      </div>
-
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Card Number */}
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-gray-700">
-            Card Number
-          </label>
-          <div className="relative">
-            <input
-              type="text"
-              placeholder="1234 5678 9012 3456"
-              value={cardDetails.number}
-              onChange={handleInputChange('number')}
-              onFocus={() => setFocusedField('number')}
-              onBlur={() => setFocusedField(null)}
-              className={`w-full px-4 py-3 pr-12 border-2 rounded-lg transition-all duration-200 ${
-                errors.number 
-                  ? 'border-red-300 focus:border-red-500' 
-                  : focusedField === 'number'
-                    ? 'border-red-500 ring-4 ring-red-100'
-                    : 'border-gray-200 focus:border-red-300'
-              }`}
-              disabled={isLoading}
-            />
-            <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-              <CardBrandIcon cardType={cardType} />
+    <div className="max-w-2xl mx-auto">
+      <div className="bg-white rounded-lg shadow-lg border border-gray-200">
+        <div className="px-6 py-4 border-b border-gray-200 bg-blue-50">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-bold text-gray-900">Secure Payment</h2>
+            <div className="flex items-center space-x-2 text-green-600">
+              <Lock size={16} />
+              <span className="text-sm font-medium">SSL Secured</span>
             </div>
           </div>
-          {errors.number && (
-            <p className="text-sm text-red-600 flex items-center">
-              <span className="w-1 h-1 bg-black rounded-full mr-2"></span>
-              {errors.number}
-            </p>
-          )}
-        </div>
-
-        {/* Cardholder Name */}
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-gray-700">
-            Cardholder Name
-          </label>
-          <input
-            type="text"
-            placeholder="John Doe"
-            value={cardDetails.name}
-            onChange={handleInputChange('name')}
-            onFocus={() => setFocusedField('name')}
-            onBlur={() => setFocusedField(null)}
-            className={`w-full px-4 py-3 border-2 rounded-lg transition-all duration-200 ${
-              errors.name 
-                ? 'border-gray-400 focus:border-black' 
-                : focusedField === 'name'
-                  ? 'border-black ring-4 ring-gray-100'
-                  : 'border-gray-200 focus:border-gray-400'
-            }`}
-            disabled={isLoading}
-          />
-          {errors.name && (
-            <p className="text-sm text-red-600 flex items-center">
-              <span className="w-1 h-1 bg-black rounded-full mr-1"></span>
-              {errors.name}
-            </p>
-          )}
-        </div>
-
-        {/* Expiry and CVV */}
-        <div className="grid grid-cols-2 gap-4">
-          {/* Expiry Date */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-gray-700">
-              Expiry Date
-            </label>
-            <input
-              type="text"
-              placeholder="MM/YY"
-              value={cardDetails.expiry}
-              onChange={handleInputChange('expiry')}
-              onFocus={() => setFocusedField('expiry')}
-              onBlur={() => setFocusedField(null)}
-              className={`w-full px-4 py-3 border-2 rounded-lg transition-all duration-200 ${
-                errors.expiry 
-                 ? 'border-gray-400 focus:border-black' 
-                  : focusedField === 'expiry'
-                   ? 'border-black ring-4 ring-gray-100'
-                   : 'border-gray-200 focus:border-gray-400'
-              }`}
-              disabled={isLoading}
-            />
-            {errors.expiry && (
-              <p className="text-xs text-red-600 flex items-center">
-               <span className="w-1 h-1 bg-black rounded-full mr-1"></span>
-                {errors.expiry}
-              </p>
-            )}
-          </div>
-
-          {/* CVV */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-gray-700">
-              Security Code
-            </label>
-            <input
-              type="text"
-              placeholder={cardType === 'amex' ? '1234' : '123'}
-              value={cardDetails.cvv}
-              onChange={handleInputChange('cvv')}
-              onFocus={() => setFocusedField('cvv')}
-              onBlur={() => setFocusedField(null)}
-              className={`w-full px-4 py-3 border-2 rounded-lg transition-all duration-200 ${
-                errors.cvv 
-                  ? 'border-red-300 focus:border-red-500' 
-                  : focusedField === 'cvv'
-                    ? 'border-red-500 ring-4 ring-red-100'
-                    : 'border-gray-200 focus:border-red-300'
-              }`}
-              disabled={isLoading}
-            />
-            {errors.cvv && (
-              <p className="text-xs text-red-600 flex items-center">
-                <span className="w-1 h-1 bg-red-600 rounded-full mr-1"></span>
-                {errors.cvv}
-              </p>
-            )}
+          <div className="mt-2">
+            <span className="text-2xl font-bold text-blue-600">{currency} {amount.toLocaleString()}</span>
           </div>
         </div>
-
-        {/* Submit Button */}
-        <button
-          type="submit"
-          disabled={isLoading}
-          className={`w-full py-4 px-6 rounded-lg font-semibold text-white transition-all duration-200 ${
-            isLoading
-              ? 'bg-gray-400 cursor-not-allowed'
-              : 'bg-black hover:bg-gray-800 active:transform active:scale-95'
-          } shadow-lg hover:shadow-xl`}
-        >
-          {isLoading ? (
-            <div className="flex items-center justify-center">
-              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-              Processing...
+        
+        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+          {/* Card Information */}
+          <div className="space-y-4">
+            <h3 className="font-semibold text-gray-900 flex items-center">
+              <CreditCard size={16} className="mr-2" />
+              Card Information
+            </h3>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Card Number *
+              </label>
+              <input
+                type="text"
+                value={formData.cardNumber}
+                onChange={(e) => handleCardNumberChange(e.target.value)}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="1234 5678 9012 3456"
+                required
+              />
             </div>
-          ) : (
-            amount > 0 ? `Submit Payment ${formatAmount(amount, currency)}` : 'Submit Payment'
-          )}
-        </button>
-      </form>
 
-      {/* Security Notice */}
-      <div className="mt-6 text-center">
-        <p className="text-xs text-gray-500">
-          Your payment information is encrypted and secure
-        </p>
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Month *
+                </label>
+                <select
+                  value={formData.expiryMonth}
+                  onChange={(e) => setFormData(prev => ({ ...prev, expiryMonth: e.target.value }))}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  required
+                >
+                  <option value="">MM</option>
+                  {months.map((month) => (
+                    <option key={month.value} value={month.value}>
+                      {month.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Year *
+                </label>
+                <select
+                  value={formData.expiryYear}
+                  onChange={(e) => setFormData(prev => ({ ...prev, expiryYear: e.target.value }))}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  required
+                >
+                  <option value="">YYYY</option>
+                  {years.map((year) => (
+                    <option key={year} value={year.toString()}>
+                      {year}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  CVV *
+                </label>
+                <input
+                  type="text"
+                  value={formData.cvv}
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/\D/g, '');
+                    if (value.length <= 4) {
+                      setFormData(prev => ({ ...prev, cvv: value }));
+                    }
+                  }}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="123"
+                  maxLength={4}
+                  required
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Cardholder Name *
+              </label>
+              <div className="relative">
+                <User size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  value={formData.cardHolderName}
+                  onChange={(e) => setFormData(prev => ({ ...prev, cardHolderName: e.target.value }))}
+                  className="w-full pl-9 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="John Doe"
+                  required
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Billing Address */}
+          <div className="space-y-4">
+            <h3 className="font-semibold text-gray-900 flex items-center">
+              <MapPin size={16} className="mr-2" />
+              Billing Address
+            </h3>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Street Address *
+              </label>
+              <input
+                type="text"
+                value={formData.billingAddress.street}
+                onChange={(e) => setFormData(prev => ({ 
+                  ...prev, 
+                  billingAddress: { ...prev.billingAddress, street: e.target.value }
+                }))}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="123 Main Street"
+                required
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  City *
+                </label>
+                <input
+                  type="text"
+                  value={formData.billingAddress.city}
+                  onChange={(e) => setFormData(prev => ({ 
+                    ...prev, 
+                    billingAddress: { ...prev.billingAddress, city: e.target.value }
+                  }))}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="New York"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  State *
+                </label>
+                <input
+                  type="text"
+                  value={formData.billingAddress.state}
+                  onChange={(e) => setFormData(prev => ({ 
+                    ...prev, 
+                    billingAddress: { ...prev.billingAddress, state: e.target.value }
+                  }))}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="NY"
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  ZIP Code *
+                </label>
+                <input
+                  type="text"
+                  value={formData.billingAddress.zipCode}
+                  onChange={(e) => setFormData(prev => ({ 
+                    ...prev, 
+                    billingAddress: { ...prev.billingAddress, zipCode: e.target.value }
+                  }))}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="10001"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Country *
+                </label>
+                <select
+                  value={formData.billingAddress.country}
+                  onChange={(e) => setFormData(prev => ({ 
+                    ...prev, 
+                    billingAddress: { ...prev.billingAddress, country: e.target.value }
+                  }))}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  required
+                >
+                  <option value="US">United States</option>
+                  <option value="CA">Canada</option>
+                  <option value="GB">United Kingdom</option>
+                  <option value="DE">Germany</option>
+                  <option value="FR">France</option>
+                  <option value="MX">Mexico</option>
+                  <option value="AE">United Arab Emirates</option>
+                  <option value="SA">Saudi Arabia</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* Submit Button */}
+          <button
+            type="submit"
+            disabled={isProcessing}
+            className="w-full px-6 py-4 bg-green-600 text-white font-bold hover:bg-green-700 transition-colors rounded-lg disabled:opacity-50 disabled:cursor-not-allowed text-lg"
+          >
+            {isProcessing ? (
+              <div className="flex items-center justify-center">
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-3"></div>
+                Processing Payment...
+              </div>
+            ) : (
+              <>
+                <Lock size={20} className="mr-2 inline" />
+                Pay {currency} {amount.toLocaleString()}
+              </>
+            )}
+          </button>
+
+          <div className="text-center text-sm text-gray-500">
+            <p>Your payment information is encrypted and secure.</p>
+          </div>
+        </form>
       </div>
     </div>
   );
 };
+
+export default PaymentScreen;

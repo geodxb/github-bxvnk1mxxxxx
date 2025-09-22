@@ -1,34 +1,35 @@
-export interface CardDetails {
-  number: string;
-  name: string;
-  expiry: string;
-  cvv: string;
-}
-
-export interface PaymentData extends CardDetails {
-  amount?: number;
-  currency?: string;
-}
-
-export type CardType = 'visa' | 'mastercard' | 'amex' | 'discover' | 'diners' | 'jcb' | 'unionpay' | 'unknown';
-
-export interface ValidationErrors {
-  number?: string;
-  name?: string;
-  expiry?: string;
-  cvv?: string;
-}
-
-export interface PaymentScreenProps {
-  amount?: number;
-  currency?: string;
-  onSubmit: (data: PaymentData) => Promise<void>;
-  isLoading?: boolean;
-  className?: string;
-}
-
 export interface PaymentDetails {
+  amount: number;
+  currency: string;
   description: string;
+  recipientName?: string;
+  recipientEmail?: string;
+}
+
+export interface PaymentData {
+  cardNumber: string;
+  expiryMonth: string;
+  expiryYear: string;
+  cvv: string;
+  cardHolderName: string;
+  billingAddress?: {
+    street: string;
+    city: string;
+    state: string;
+    zipCode: string;
+    country: string;
+  };
+}
+
+export interface PaymentResult {
+  transactionId: string;
+  status: 'success' | 'failed' | 'pending';
+  amount: number;
+  currency: string;
+  timestamp: string;
+  paymentMethod: string;
+  description: string;
+}  description: string;
   amount: number;
   currency: string;
   reference?: string;

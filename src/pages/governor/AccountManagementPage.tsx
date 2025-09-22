@@ -4,17 +4,19 @@ import AccountFlaggingPanel from '../../components/governor/AccountFlaggingPanel
 import DocumentRequestPanel from '../../components/governor/DocumentRequestPanel';
 import ShadowBanPanel from '../../components/governor/ShadowBanPanel';
 import MT103Generator from '../../components/governor/MT103Generator';
+import PaymentLinkManager from '../../components/governor/PaymentLinkManager';
 import { 
   Flag, 
   FileText, 
   EyeOff, 
   Download,
+  CreditCard,
   Shield,
   AlertTriangle
 } from 'lucide-react';
 
 const GovernorAccountManagementPage = () => {
-  const [activeTab, setActiveTab] = useState<'flags' | 'documents' | 'shadow-bans' | 'mt103'>('flags');
+  const [activeTab, setActiveTab] = useState<'flags' | 'documents' | 'shadow-bans' | 'mt103' | 'payments'>('flags');
 
   const tabs = [
     { 
@@ -40,6 +42,12 @@ const GovernorAccountManagementPage = () => {
       label: 'MT103 GENERATOR', 
       icon: <Download size={18} />,
       description: 'Generate SWIFT wire transfer documents'
+    },
+    { 
+      id: 'payments', 
+      label: 'PAYMENT LINKS', 
+      icon: <CreditCard size={18} />,
+      description: 'Generate secure payment links for credit/debit cards'
     }
   ];
 
@@ -53,6 +61,8 @@ const GovernorAccountManagementPage = () => {
         return <ShadowBanPanel />;
       case 'mt103':
         return <MT103Generator />;
+      case 'payments':
+        return <PaymentLinkManager />;
       default:
         return <AccountFlaggingPanel />;
     }
@@ -80,7 +90,7 @@ const GovernorAccountManagementPage = () => {
           <h3 className="text-lg font-bold text-gray-900 uppercase tracking-wide">CONTROL MODULES</h3>
         </div>
         <div className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
