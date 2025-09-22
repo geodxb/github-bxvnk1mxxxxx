@@ -17,6 +17,8 @@ import Button from '../../components/common/Button';
 import Card from '../../components/common/Card';
 import { useInvestor, useTransactions } from '../../hooks/useFirestore';
 import { useAccountClosure } from '../../hooks/useAccountClosure';
+import { useAuth } from '../../contexts/AuthContext';
+import { FirestoreService } from '../../services/firestoreService';
 import { ChevronLeft, PlusCircle, AlertTriangle } from 'lucide-react';
 
 // External link for Pro status check (placeholder - replace with actual link)
