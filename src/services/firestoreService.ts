@@ -946,6 +946,93 @@ export class FirestoreService {
     }
   }
 
+  // Check and upgrade investor account to Pro based on client categorization
+  static async checkAndUpgradeInvestorAccount(
+    investorId: string,
+    investorName: string,
+    adminId: string,
+    adminName: string
+  ): Promise<string> {
+    try {
+      console.log('🔥 Checking client categorization for investor:', investorName);
+      
+      // Query client_categorizations collection for matching document
+      const categorizationQuery = query(
+        collection(db, 'client_categorizations'),
+        where('investorId', '==', investorId),
+        where('investorName', '==', investorName)
+      );
+      
+      const querySnapshot = await getDocs(categorizationQuery);
+      
+      if (querySnapshot.empty) {
+        console.log('⚠️ No categorization document found for investor');
+        return 'not_found';
+      }
+      
+      const categorizationDoc = querySnapshot.docs[0];
+      const categorizationData = categorizationDoc.data();
+      
+      console.log('✅ Found categorization document:', categorizationData);
+      
+      // Check if status is 'payed'
+      if (categorizationData.status !== 'payed') {
+        console.log('⚠️ Categorization status is not "payed":', categorizationData.status);
+        return 'not_payed';
+      }
+      
+      // Get current investor data
+      const investor = await this.getInvestorById(investorId);
+      if (!investor) {
+        console.log('❌ Investor not found');
+        return 'investor_not_found';
+      }
+      
+      // Check if already Pro
+      if (investor.accountType === 'Pro') {
+        console.log('✅ Investor is already Pro account');
+        return 'already_pro';
+      }
+      
+      // Check if currently Standard
+      if (investor.accountType !== 'Standard') {
+        console.log('⚠️ Investor account type is not Standard:', investor.accountType);
+        return 'not_standard';
+      }
+      
+      // Upgrade to Pro
+      console.log('🔄 Upgrading investor to Pro account...');
+      await this.updateInvestor(investorId, {
+        accountType: 'Pro',
+        upgradedAt: new Date(),
+        upgradedBy: adminId,
+        upgradeReason: 'Automatic upgrade based on client categorization payment'
+      });
+      
+      // Add audit log
+      await this.addAuditLog({
+        governorId: adminId,
+        governorName: adminName,
+        action: 'Account Type Upgrade',
+        targetId: investorId,
+        targetName: investorName,
+        details: {
+          oldAccountType: 'Standard',
+          newAccountType: 'Pro',
+          reason: 'Automatic upgrade based on client categorization payment',
+          categorizationDocId: categorizationDoc.id,
+          categorizationStatus: categorizationData.status
+        }
+      });
+      
+      console.log('✅ Investor successfully upgraded to Pro account');
+      return 'upgraded';
+    } catch (error) {
+      console.error('❌ Error checking/upgrading investor account:', error);
+      return 'error';
+    }
+  }
+
   // Get audit logs
   static async getAuditLogs(limitCount: number = 100): Promise<AuditLog[]> {
     try {

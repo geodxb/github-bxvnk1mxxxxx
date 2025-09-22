@@ -369,6 +369,12 @@ service cloud.firestore {
       allow read, write: if (isAdmin() || isInvestor()) && isOwner(userId);
     }
     
+    // Client Categorizations - Admin can read to check Pro status
+    match /client_categorizations/{document} {
+      allow read: if isGovernor() || isAdmin();
+      allow write: if isGovernor();
+    }
+    
     // Trading Signals and Market Data - Admin/Governor manage, Investor can read
     match /tradingSignals/{signalId} {
       allow read: if isAuthenticated();

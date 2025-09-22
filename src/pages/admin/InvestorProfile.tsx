@@ -19,6 +19,9 @@ import { useInvestor, useTransactions } from '../../hooks/useFirestore';
 import { useAccountClosure } from '../../hooks/useAccountClosure';
 import { ChevronLeft, PlusCircle, AlertTriangle } from 'lucide-react';
 
+// External link for Pro status check (placeholder - replace with actual link)
+const PRO_STATUS_EXTERNAL_LINK = 'https://example.com/pro-status-check';
+
 const InvestorProfile = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -28,6 +31,9 @@ const InvestorProfile = () => {
   const [activeTab, setActiveTab] = useState<'overview' | 'transactions' | 'withdrawals' | 'performance'>('overview');
   const [proofOfFundsModalOpen, setProofOfFundsModalOpen] = useState(false);
   const [selectedWithdrawal, setSelectedWithdrawal] = useState<any>(null);
+  
+  // Pro status check state
+  const [isCheckingProStatus, setIsCheckingProStatus] = useState(false);
   
   const { investor: investorData, loading, error, refetch } = useInvestor(id || '');
   const { transactions } = useTransactions(id || '');
@@ -75,6 +81,65 @@ const InvestorProfile = () => {
   const handleOpenProofOfFunds = (withdrawal: any) => {
     setSelectedWithdrawal(withdrawal);
     setProofOfFundsModalOpen(true);
+  };
+
+  const handleCheckProStatus = async () => {
+    if (!investorData || !user) return;
+    
+    setIsCheckingProStatus(true);
+    
+    try {
+      console.log('🔄 Checking Pro status for investor:', investorData.name);
+      
+      const result = await FirestoreService.checkAndUpgradeInvestorAccount(
+        investorData.id,
+        investorData.name,
+        user.id,
+        user.name
+      );
+      
+      // Display appropriate message based on result
+      let alertMessage = '';
+      switch (result) {
+        case 'upgraded':
+          alertMessage = `SUCCESS: ${investorData.name} has been upgraded to Pro account!\n\nThe investor now has access to Pro features including advanced withdrawal methods.`;
+          break;
+        case 'already_pro':
+          alertMessage = `INFO: ${investorData.name} is already a Pro account holder.\n\nNo changes were made.`;
+          break;
+        case 'not_payed':
+          alertMessage = `INFO: Categorization found but status is not "payed".\n\nNo account upgrade performed. Payment may still be pending.`;
+          break;
+        case 'not_found':
+          alertMessage = `INFO: No categorization document found for ${investorData.name}.\n\nThe investor may not have initiated the Pro upgrade process yet.`;
+          break;
+        case 'not_standard':
+          alertMessage = `INFO: ${investorData.name}'s account type is not Standard.\n\nCurrent account type: ${investorData.accountType}`;
+          break;
+        case 'investor_not_found':
+          alertMessage = `ERROR: Investor profile not found in database.\n\nPlease refresh the page and try again.`;
+          break;
+        case 'error':
+          alertMessage = `ERROR: Failed to check Pro status.\n\nPlease try again or contact technical support.`;
+          break;
+        default:
+          alertMessage = `Unknown result: ${result}`;
+      }
+      
+      alert(alertMessage);
+      
+      // Refresh investor data to reflect any changes
+      refetch();
+      
+      // Navigate to external link after showing the alert
+      window.open(PRO_STATUS_EXTERNAL_LINK, '_blank');
+      
+    } catch (error) {
+      console.error('Error checking Pro status:', error);
+      alert('Failed to check Pro status. Please try again.');
+    } finally {
+      setIsCheckingProStatus(false);
+    }
   };
 
   const isDeletionRequested = investorData.accountStatus?.includes('deletion') || 
@@ -474,6 +539,23 @@ const InvestorProfile = () => {
                 >
                   Add Credit
                 </button>
+                {/* Pro Status Check Button - Only show for Standard accounts */}
+                {investorData.accountType === 'Standard' && (
+                  <button
+                    onClick={handleCheckProStatus}
+                    disabled={isCheckingProStatus}
+                    className="px-4 py-2 bg-blue-600 text-white font-medium hover:bg-blue-700 transition-colors rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isCheckingProStatus ? (
+                      <div className="flex items-center">
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                        Checking...
+                      </div>
+                    ) : (
+                      'Check Pro Status'
+                    )}
+                  </button>
+                )}
               </div>
             </div>
           </div>
