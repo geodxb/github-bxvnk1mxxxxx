@@ -956,18 +956,54 @@ export class FirestoreService {
     try {
       console.log('🔥 Checking client categorization for investor:', investorName);
       
-      // Query client_categorizations collection for matching document
-      const categorizationQuery = query(
+      // First, try to find by exact investorId match
+      let categorizationQuery = query(
         collection(db, 'client_categorizations'),
-        where('investorId', '==', investorId),
-        where('investorName', '==', investorName)
+        where('investorId', '==', investorId)
       );
       
-      const querySnapshot = await getDocs(categorizationQuery);
+      let querySnapshot = await getDocs(categorizationQuery);
       
       if (querySnapshot.empty) {
-        console.log('⚠️ No categorization document found for investor');
-        return 'not_found';
+        console.log('⚠️ No categorization found by investorId, trying by name...');
+        
+        // If not found by ID, try to find by name (case-insensitive partial match)
+        const allCategorizationsQuery = query(collection(db, 'client_categorizations'));
+        const allQuerySnapshot = await getDocs(allCategorizationsQuery);
+        
+        // Search through all documents for name matches
+        const matchingDoc = allQuerySnapshot.docs.find(doc => {
+          const data = doc.data();
+          
+          // Check if this document contains the investor name
+          if (data.investorName && 
+              data.investorName.toLowerCase().includes(investorName.toLowerCase())) {
+            console.log('✅ Found potential match by name:', data.investorName);
+            return true;
+          }
+          
+          // Also check if the document has multiple entries and one matches
+          if (data.requests && Array.isArray(data.requests)) {
+            return data.requests.some((request: any) => 
+              request.investorName && 
+              request.investorName.toLowerCase().includes(investorName.toLowerCase())
+            );
+          }
+          
+          // Check all fields for potential name matches
+          const docString = JSON.stringify(data).toLowerCase();
+          const searchName = investorName.toLowerCase();
+          
+          return docString.includes(searchName);
+        });
+        
+        if (!matchingDoc) {
+          console.log('⚠️ No categorization document found for investor by name either');
+          return 'not_found';
+        }
+        
+        // Create a new query snapshot with the found document
+        querySnapshot = { docs: [matchingDoc], empty: false } as any;
       }
       
       const categorizationDoc = querySnapshot.docs[0];
@@ -975,9 +1011,28 @@ export class FirestoreService {
       
       console.log('✅ Found categorization document:', categorizationData);
       
-      // Check if status is 'payed'
-      if (categorizationData.status !== 'payed') {
-        console.log('⚠️ Categorization status is not "payed":', categorizationData.status);
+      // Check if status is 'payed' - handle both direct status and nested requests
+      let isPayed = false;
+      
+      if (categorizationData.status === 'payed') {
+        isPayed = true;
+      } else if (categorizationData.requests && Array.isArray(categorizationData.requests)) {
+        // Check if any request in the array has status 'payed' and matches the investor
+        const matchingRequest = categorizationData.requests.find((request: any) => 
+          request.investorName && 
+          request.investorName.toLowerCase().includes(investorName.toLowerCase()) &&
+          request.status === 'payed'
+        );
+        
+        if (matchingRequest) {
+          console.log('✅ Found payed request for investor:', matchingRequest);
+          isPayed = true;
+        }
+      }
+      
+      if (!isPayed) {
+        console.log('⚠️ No payed status found for investor:', investorName);
+        console.log('Document data:', categorizationData);
         return 'not_payed';
       }
       
