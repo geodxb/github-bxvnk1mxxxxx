@@ -229,37 +229,40 @@ const InvestorProfile = () => {
             {/* Contract Download Section */}
             <ContractDownload investor={investorData} />
             
-            {/* Refined Transaction Summary */}
+            {/* Account Management Tools */}
             <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
               <div className="px-6 py-4 border-b border-gray-100">
-                <h3 className="text-lg font-semibold text-gray-900">Transaction Overview</h3>
+                <h3 className="text-lg font-semibold text-gray-900">Account Management</h3>
               </div>
               <div className="p-6">
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-gray-900 mb-1">{transactions.length}</div>
-                    <div className="text-sm text-gray-600 font-medium">Total Transactions</div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="bg-gray-50 p-4 rounded-lg border border-gray-100">
+                    <h4 className="font-semibold text-gray-900 mb-2">Withdrawal Management</h4>
+                    <p className="text-sm text-gray-600 mb-4">
+                      Process and track withdrawal requests for this investor
+                    </p>
+                    <button
+                      onClick={() => navigate('/admin/withdrawals')}
+                      className="px-4 py-2 bg-gray-900 text-white font-medium hover:bg-gray-800 transition-colors rounded-lg"
+                    >
+                      Manage Withdrawals
+                    </button>
                   </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-gray-900 mb-1">
-                      {transactions.filter(tx => tx.type === 'Deposit').length}
-                    </div>
-                    <div className="text-sm text-gray-600 font-medium">Deposits</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-gray-900 mb-1">
-                      {transactions.filter(tx => tx.type === 'Earnings').length}
-                    </div>
-                    <div className="text-sm text-gray-600 font-medium">Earnings</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-gray-900 mb-1">{withdrawalCount}</div>
-                    <div className="text-sm text-gray-600 font-medium">Withdrawals</div>
+                  <div className="bg-gray-50 p-4 rounded-lg border border-gray-100">
+                    <h4 className="font-semibold text-gray-900 mb-2">Commission Tracking</h4>
+                    <p className="text-sm text-gray-600 mb-4">
+                      View commission earnings from this investor's withdrawals
+                    </p>
+                    <button
+                      onClick={() => navigate('/admin/commissions')}
+                      className="px-4 py-2 bg-gray-900 text-white font-medium hover:bg-gray-800 transition-colors rounded-lg"
+                    >
+                      View Commissions
+                    </button>
                   </div>
                 </div>
               </div>
             </div>
-            <TransactionsTable investorId={investorData.id} />
             
             {/* Submit Ticket Panel */}
             <SubmitTicketPanel investor={investorData} />
@@ -498,10 +501,7 @@ const InvestorProfile = () => {
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
             }`}
           >
-            All Transactions
-            <span className="ml-2 px-2 py-1 bg-gray-100 text-gray-700 text-xs font-medium rounded-full">
-              {transactions.length}
-            </span>
+            Account Management
           </button>
           <button
             onClick={() => setActiveTab('withdrawals')}

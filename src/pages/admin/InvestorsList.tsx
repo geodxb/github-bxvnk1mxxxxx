@@ -345,8 +345,7 @@ const InvestorsListPage = () => {
                 {[
                   { key: 'all', label: 'All', count: investors.length },
                   { key: 'active', label: 'Active', count: activeInvestors },
-                  { key: 'restricted', label: 'Restricted', count: restrictedInvestors },
-                  { key: 'closed', label: 'Closed', count: closedInvestors }
+                  { key: 'restricted', label: 'Restricted', count: restrictedInvestors }
                 ].map(filter => (
                   <button
                     key={filter.key}

@@ -188,33 +188,6 @@ const InvestorDashboard = () => {
           </div>
         );
         
-      case 'transactions':
-        return (
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Card className="text-center">
-                <h3 className="text-gray-500 mb-2">Total Transactions</h3>
-                <p className="text-2xl font-bold text-gray-800">
-                  {transactions.length}
-                </p>
-              </Card>
-              <Card className="text-center">
-                <h3 className="text-gray-500 mb-2">Largest Transaction</h3>
-                <p className="text-2xl font-bold text-blue-600">
-                  ${transactions.length > 0 ? Math.max(...transactions.map(t => Math.abs(t.amount))).toLocaleString() : '0'}
-                </p>
-              </Card>
-              <Card className="text-center">
-                <h3 className="text-gray-500 mb-2">Average Transaction</h3>
-                <p className="text-2xl font-bold text-indigo-600">
-                  ${transactions.length > 0 ? (transactions.reduce((sum, t) => sum + Math.abs(t.amount), 0) / transactions.length).toFixed(2) : '0.00'}
-                </p>
-              </Card>
-            </div>
-            <TransactionsTable transactions={transactions} />
-          </div>
-        );
-        
       case 'profile':
         return (
           <div className="space-y-6">
@@ -333,17 +306,6 @@ const InvestorDashboard = () => {
           >
             <TrendingUp size={18} className="mr-2" />
             Performance
-          </button>
-          <button
-            onClick={() => setActiveTab('transactions')}
-            className={`py-4 px-2 flex items-center ${
-              activeTab === 'transactions'
-                ? 'border-b-2 border-blue-500 text-blue-600'
-                : 'text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            <Clock size={18} className="mr-2" />
-            Transactions
           </button>
           <button
             onClick={() => setActiveTab('withdrawals')}

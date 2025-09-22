@@ -161,7 +161,7 @@ const SettingsPage = () => {
         return (
           <div className="bg-white rounded-lg border border-gray-300 shadow-sm">
             <div className="px-6 py-4 border-b border-gray-100">
-              <h3 className="text-lg font-semibold text-gray-900 uppercase tracking-wide">PLATFORM SETTINGS</h3>
+              <h3 className="text-lg font-semibold text-gray-900 uppercase tracking-wide">SYSTEM INFORMATION</h3>
             </div>
             <div className="p-6">
               <div className="space-y-6">
@@ -170,11 +170,10 @@ const SettingsPage = () => {
                   <div className="flex items-start space-x-3">
                     <Lock size={20} className="text-gray-600 mt-0.5" />
                     <div>
-                      <h3 className="text-gray-800 font-semibold uppercase tracking-wide">SETTINGS LOCKED</h3>
+                      <h3 className="text-gray-800 font-semibold uppercase tracking-wide">SYSTEM INFORMATION</h3>
                       <p className="text-gray-700 text-sm mt-1">
-                        Platform settings are locked for security and stability. These critical system parameters 
-                        cannot be modified through the interface to prevent unauthorized changes that could affect 
-                        platform operations.
+                        System information is displayed for reference only. Critical platform parameters 
+                        are managed by system administrators to ensure security and stability.
                       </p>
                     </div>
                   </div>
@@ -420,7 +419,7 @@ const SettingsPage = () => {
 
   const tabs = [
     { id: 'profile', label: 'PROFILE', icon: <User size={18} /> },
-    { id: 'platform', label: 'PLATFORM', icon: <Globe size={18} /> },
+    { id: 'platform', label: 'SYSTEM INFO', icon: <Globe size={18} /> },
     { id: 'notifications', label: 'NOTIFICATIONS', icon: <Bell size={18} /> },
     { id: 'security', label: 'SECURITY', icon: <Shield size={18} /> },
   ];

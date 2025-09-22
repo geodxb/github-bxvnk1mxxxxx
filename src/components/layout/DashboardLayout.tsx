@@ -67,11 +67,8 @@ const DashboardLayout = ({ children, title }: DashboardLayoutProps) => {
         hasDropdown: true,
         dropdownItems: [
           { text: 'Investor Holdings', path: '/admin/investors' },
-          { text: 'Active Accounts', path: '/admin/investors?status=active' },
-          { text: 'Restricted', path: '/admin/investors?status=restricted' }
         ]
       },
-      { text: 'Reports', path: '/admin/analytics' },
       { 
         text: 'Planning', 
         path: '/admin/withdrawals',
@@ -79,7 +76,6 @@ const DashboardLayout = ({ children, title }: DashboardLayoutProps) => {
         dropdownItems: [
           { text: 'Withdrawal Management', path: '/admin/withdrawals' },
           { text: 'Commission Tracking', path: '/admin/commissions' },
-          { text: 'Transaction History', path: '/admin/transactions' }
         ]
       },
       { 
@@ -88,7 +84,6 @@ const DashboardLayout = ({ children, title }: DashboardLayoutProps) => {
         hasDropdown: true,
         dropdownItems: [
           { text: 'Settings', path: '/admin/settings' },
-          { text: 'Performance & Reports', path: '/admin/performance-reports' }
         ]
       },
     ];
