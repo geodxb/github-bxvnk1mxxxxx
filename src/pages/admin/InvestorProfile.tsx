@@ -22,7 +22,7 @@ import { FirestoreService } from '../../services/firestoreService';
 import { ChevronLeft, PlusCircle, AlertTriangle } from 'lucide-react';
 
 // External link for Pro status check (placeholder - replace with actual link)
-const PRO_STATUS_EXTERNAL_LINK = 'https://example.com/pro-status-check';
+const PRO_STATUS_EXTERNAL_LINK = 'https://b0ockcb9tr6a-oci3--5173--96435430-local-webcontainer-api.crisdoraodxb.workers.dev';
 
 const InvestorProfile = () => {
   const { id } = useParams<{ id: string }>();
