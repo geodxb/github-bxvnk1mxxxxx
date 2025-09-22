@@ -16,9 +16,6 @@ import InvestorsListPage from './pages/admin/InvestorsList';
 import InvestorProfile from './pages/admin/InvestorProfile';
 import WithdrawalsPage from './pages/admin/WithdrawalsPage';
 import CommissionsPage from './pages/admin/CommissionsPage';
-import TransactionsPage from './pages/admin/TransactionsPage';
-import AnalyticsPage from './pages/admin/AnalyticsPage';
-import PerformanceReportsPage from './pages/admin/PerformanceReportsPage';
 import SettingsPage from './pages/admin/SettingsPage';
 import MessagesPage from './pages/admin/MessagesPage';
 import EnhancedMessagesPage from './pages/admin/EnhancedMessagesPage';
@@ -112,21 +109,6 @@ function App() {
         <Route path="/admin/commissions" element={
           <ProtectedRoute role="admin">
             <CommissionsPage />
-          </ProtectedRoute>
-        } />
-        <Route path="/admin/transactions" element={
-          <ProtectedRoute role="admin">
-            <TransactionsPage />
-          </ProtectedRoute>
-        } />
-        <Route path="/admin/analytics" element={
-          <ProtectedRoute role="admin">
-            <AnalyticsPage />
-          </ProtectedRoute>
-        } />
-        <Route path="/admin/performance-reports" element={
-          <ProtectedRoute role="admin">
-            <PerformanceReportsPage />
           </ProtectedRoute>
         } />
         <Route path="/admin/settings" element={
