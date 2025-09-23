@@ -1,4 +1,4 @@
-export type UserRole = 'admin' | 'investor' | 'governor';
+export type UserRole = 'admin' | 'governor'; // Changed: Removed 'investor'
 
 export interface User {
   id: string;
