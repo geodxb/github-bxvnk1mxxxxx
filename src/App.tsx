@@ -2,13 +2,13 @@ import React, { useEffect, useState } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
 import LoadingScreen from './components/common/LoadingScreen';
-import ShadowBanCheck from './components/investor/ShadowBanCheck';
+// Removed: import ShadowBanCheck from './components/investor/ShadowBanCheck';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import PinEntryScreen from './pages/auth/PinEntryScreen';
 
 // Auth pages
 import AdminLogin from './pages/auth/AdminLogin';
-import AffiliateLogin from './pages/auth/AffiliateLogin';
+// Removed: import AffiliateLogin from './pages/auth/AffiliateLogin';
 
 // Admin pages
 import AdminDashboard from './pages/admin/Dashboard';
@@ -20,8 +20,8 @@ import SettingsPage from './pages/admin/SettingsPage';
 import MessagesPage from './pages/admin/MessagesPage';
 import EnhancedMessagesPage from './pages/admin/EnhancedMessagesPage';
 
-// Investor pages
-import InvestorDashboard from './pages/investor/Dashboard';
+// Removed: Investor pages
+// Removed: import InvestorDashboard from './pages/investor/Dashboard';
 
 // Governor pages
 import GovernorDashboard from './pages/governor/Dashboard';
@@ -83,7 +83,7 @@ function App() {
       <Routes>
         {/* Auth Routes */}
         <Route path="/login" element={<AdminLogin />} />
-        <Route path="/affiliate-login" element={<AffiliateLogin />} />
+        {/* Removed: <Route path="/affiliate-login" element={<AffiliateLogin />} /> */}
         
         {/* Admin Routes */}
         <Route path="/admin" element={
@@ -122,21 +122,21 @@ function App() {
           </ProtectedRoute>
         } />
         
-        {/* Investor Routes */}
-        <Route path="/investor" element={
+        {/* Removed: Investor Routes */}
+        {/* Removed: <Route path="/investor" element={
           <ProtectedRoute role="investor">
             <ShadowBanCheck>
               <InvestorDashboard />
             </ShadowBanCheck>
           </ProtectedRoute>
-        } />
-        <Route path="/investor/messages" element={
+        } /> */}
+        {/* Removed: <Route path="/investor/messages" element={
           <ProtectedRoute role="investor">
             <ShadowBanCheck>
               <MessagesPage />
             </ShadowBanCheck>
           </ProtectedRoute>
-        } />
+        } /> */}
         
         {/* Governor Routes */}
         <Route path="/governor" element={
@@ -220,7 +220,7 @@ function App() {
           user ? (
             <Navigate to={
               user.role === 'governor' ? '/governor' :
-              user.role === 'admin' ? '/admin' : '/investor'
+              user.role === 'admin' ? '/admin' : '/login' // Changed: Removed investor redirect
             } replace />
           ) : (
             <Navigate to="/login" replace />
