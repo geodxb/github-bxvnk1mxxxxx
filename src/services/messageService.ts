@@ -22,7 +22,7 @@ export class MessageService {
   static async sendMessage(
     senderId: string,
     senderName: string,
-    senderRole: 'admin' | 'affiliate' | 'governor',
+    senderRole: 'admin' | 'investor' | 'governor', // Changed 'affiliate' to 'investor'
     content: string,
     conversationId?: string,
     replyTo?: string,
@@ -102,11 +102,11 @@ export class MessageService {
     }
   }
 
-  // Get or create conversation between admin and affiliate
+  // Get or create conversation between admin and investor
   static async getOrCreateConversation(
     userId: string, 
     userName: string, 
-    userRole: 'admin' | 'affiliate' | 'governor',
+    userRole: 'admin' | 'investor' | 'governor', // Changed 'affiliate' to 'investor'
     targetUserId?: string
   ): Promise<string> {
     try {
