@@ -6,7 +6,7 @@ import Button from '../../components/common/Button';
 import Modal from '../../components/common/Modal';
 // Removed: import WithdrawalRequestForm from '../../components/investor/WithdrawalRequestForm';
 import { FirestoreService } from '../../services/firestoreService';
-import ProofOfFundsForm from '../../components/investor/ProofOfFundsForm';
+// Removed: import ProofOfFundsForm from '../../components/investor/ProofOfFundsForm';
 import WithdrawalFlagModal from '../../components/admin/WithdrawalFlagModal';
 import { useWithdrawalFlags } from '../../hooks/useWithdrawalFlags';
 import ProofOfTransferGenerator from '../../components/admin/ProofOfTransferGenerator';
@@ -44,8 +44,8 @@ const WithdrawalsPage = () => {
   const [selectedW8BenRequest, setSelectedW8BenRequest] = useState<any>(null);
   const [w8benAction, setW8benAction] = useState<'approve' | 'reject'>('approve');
   const [w8benReason, setW8benReason] = useState('');
-  const [proofOfFundsModalOpen, setProofOfFundsModalOpen] = useState(false);
-  const [selectedProofWithdrawal, setSelectedProofWithdrawal] = useState<any>(null);
+  // Removed: const [proofOfFundsModalOpen, setProofOfFundsModalOpen] = useState(false);
+  // Removed: const [selectedProofWithdrawal, setSelectedProofWithdrawal] = useState<any>(null);
   const [showProofOfTransfer, setShowProofOfTransfer] = useState(false);
   const [selectedTransferProof, setSelectedTransferProof] = useState<any>(null);
   const [showFlagModal, setShowFlagModal] = useState(false);
@@ -79,24 +79,24 @@ const WithdrawalsPage = () => {
     setShowProgressModal(true);
   };
 
-  const handleOpenProofOfFunds = (request: any) => {
-    // Find the investor details for this request
-    const investor = getInvestorDetails(request.investorId);
-    if (investor) {
-      // Create a withdrawal object that matches the expected format
-      const withdrawalData = {
-        id: request.id,
-        amount: -request.amount, // Negative for withdrawal
-        date: request.date,
-        type: 'Withdrawal',
-        status: request.status,
-        description: `Withdrawal request #${request.id.slice(-8)}`
-      };
-      
-      setSelectedProofWithdrawal({ withdrawal: withdrawalData, investor });
-      setProofOfFundsModalOpen(true);
-    }
-  };
+  // Removed: const handleOpenProofOfFunds = (request: any) => {
+  // Removed:   // Find the investor details for this request
+  // Removed:   const investor = getInvestorDetails(request.investorId);
+  // Removed:   if (investor) {
+  // Removed:     // Create a withdrawal object that matches the expected format
+  // Removed:     const withdrawalData = {
+  // Removed:       id: request.id,
+  // Removed:       amount: -request.amount, // Negative for withdrawal
+  // Removed:       date: request.date,
+  // Removed:       type: 'Withdrawal',
+  // Removed:       status: request.status,
+  // Removed:       description: `Withdrawal request #${request.id.slice(-8)}`
+  // Removed:     };
+  // Removed:     
+  // Removed:     setSelectedProofWithdrawal({ withdrawal: withdrawalData, investor });
+  // Removed:     setProofOfFundsModalOpen(true);
+  // Removed:   }
+  // Removed: };
 
   const handleW8BenAction = async () => {
     if (!selectedW8BenRequest) return;
@@ -292,14 +292,14 @@ const WithdrawalsPage = () => {
             {/* Proof of funds and transfer buttons for approved/credited withdrawals */}
             {(row.status === 'Approved' || row.status === 'Credited') && (
               <div className="space-y-1">
-                <Button
+                {/* Removed: <Button
                   size="sm"
                   variant="outline"
                   onClick={() => handleOpenProofOfFunds(row)}
                   className="w-full"
                 >
                   Generate Proof of Funds
-                </Button>
+                </Button> */}
                 {row.status === 'Credited' && (
                   <Button
                     size="sm"
@@ -608,8 +608,8 @@ const WithdrawalsPage = () => {
         </div>
       )}
 
-      {/* Proof of Funds Modal */}
-      {selectedProofWithdrawal && (
+      {/* Removed: Proof of Funds Modal */}
+      {/* Removed: {selectedProofWithdrawal && (
         <ProofOfFundsForm
           isOpen={proofOfFundsModalOpen}
           onClose={() => {
@@ -619,7 +619,7 @@ const WithdrawalsPage = () => {
           investor={selectedProofWithdrawal.investor}
           withdrawal={selectedProofWithdrawal.withdrawal}
         />
-      )}
+      )} */}
 
       {/* Proof of Transfer Modal */}
       <Modal
