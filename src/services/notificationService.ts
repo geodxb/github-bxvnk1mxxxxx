@@ -182,3 +182,6 @@ export class NotificationService {
         `/governor/support-tickets`
       );
     }
+
+  }
+}
