@@ -159,3 +159,4 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 };
 
 // Removed: export type { UserRole };
+
