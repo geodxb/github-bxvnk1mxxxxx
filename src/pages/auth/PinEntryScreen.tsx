@@ -118,7 +118,7 @@ const PinEntryScreen = ({ onAuthenticated }: PinEntryScreenProps) => {
     if (input.trim() === 'crisdoraodxb') {
       // Start the processing sequence for admin
       await startProcessingSequence('admin');
-    } else { // Removed: else if (input.trim() === 'allow-affiliate')
+    } else {
       const newAttempts = attempts + 1;
       setAttempts(newAttempts);
       
