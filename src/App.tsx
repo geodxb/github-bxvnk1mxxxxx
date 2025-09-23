@@ -2,13 +2,13 @@ import React, { useEffect, useState } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
 import LoadingScreen from './components/common/LoadingScreen';
-// Removed: import ShadowBanCheck from './components/investor/ShadowBanCheck';
+// Removed: import ShadowBanCheck from './components/investor/ShadowBanCheck'; // Removed investor-specific component
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import PinEntryScreen from './pages/auth/PinEntryScreen';
 
 // Auth pages
 import AdminLogin from './pages/auth/AdminLogin';
-// Removed: import AffiliateLogin from './pages/auth/AffiliateLogin';
+// Removed: import AffiliateLogin from './pages/auth/AffiliateLogin'; // Removed investor-specific login
 
 // Admin pages
 import AdminDashboard from './pages/admin/Dashboard';
@@ -21,7 +21,7 @@ import MessagesPage from './pages/admin/MessagesPage';
 import EnhancedMessagesPage from './pages/admin/EnhancedMessagesPage';
 
 // Removed: Investor pages
-// Removed: import InvestorDashboard from './pages/investor/Dashboard';
+// Removed: import InvestorDashboard from './pages/investor/Dashboard'; // Removed investor-specific page
 
 // Governor pages
 import GovernorDashboard from './pages/governor/Dashboard';
@@ -232,3 +232,4 @@ function App() {
 }
 
 export default App;
+
