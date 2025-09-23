@@ -11,7 +11,7 @@ const AdminLogin = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [userType, setUserType] = useState<'admin' | 'affiliate'>('admin');
+  // Removed: const [userType, setUserType] = useState<'admin' | 'affiliate'>('admin');
   
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -36,12 +36,11 @@ const AdminLogin = () => {
     }
   };
   
-  const primaryColor = userType === 'admin' ? 'blue' : 'red';
+  // Changed: Always use blue for admin login
+  const primaryColor = 'blue'; 
   
   return (
-    <div className={`min-h-screen flex items-center justify-center p-4 transition-colors duration-500 ease-in-out ${
-      userType === 'admin' ? 'bg-blue-50' : 'bg-red-600'
-    }`}>
+    <div className={`min-h-screen flex items-center justify-center p-4 transition-colors duration-500 ease-in-out bg-blue-50`}>
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -62,14 +61,11 @@ const AdminLogin = () => {
           />
           
           {/* Blue line under logo */}
-          <div className={`w-full h-1 mb-8 ${
-            userType === 'admin' ? 'bg-blue-600' : 'bg-red-600'
-          }`}></div>
+          <div className={`w-full h-1 mb-8 bg-blue-600`}></div>
           
-          {/* Admin/Affiliate Toggle Switch */}
-          <div className="flex items-center justify-center mb-8">
+          {/* Removed: Admin/Affiliate Toggle Switch */}
+          {/* Removed: <div className="flex items-center justify-center mb-8">
             <div className="relative bg-gray-200 rounded-full p-1 w-56 h-12">
-              {/* Sliding background */}
               <div 
                 className={`absolute top-1 left-1 w-[calc(50%-4px)] h-10 rounded-full transition-all duration-500 ease-in-out transform ${
                   userType === 'admin' 
@@ -77,8 +73,6 @@ const AdminLogin = () => {
                     : 'translate-x-full bg-red-600'
                 }`}
               ></div>
-              
-              {/* Toggle buttons */}
               <div className="relative flex">
                 <button
                   type="button"
@@ -104,9 +98,9 @@ const AdminLogin = () => {
                 </button>
               </div>
             </div>
-          </div>
+          </div> */}
           
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Login</h1>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Admin Login</h1> {/* Changed: Hardcoded "Admin Login" */}
           <p className="text-gray-600 text-sm">Please enter your credentials</p>
         </div>
         
@@ -129,7 +123,7 @@ const AdminLogin = () => {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className={`w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 transition-all duration-300 ease-in-out ${userType === 'admin' ? 'focus:ring-blue-500' : 'focus:ring-red-500'}`}
+                className={`w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 transition-all duration-300 ease-in-out focus:ring-blue-500`} {/* Changed: Always blue focus */}
                 placeholder="Username"
                 required
               />
@@ -144,9 +138,7 @@ const AdminLogin = () => {
                 type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className={`w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 transition-all duration-300 ease-in-out ${
-                  userType === 'admin' ? 'focus:ring-blue-500' : 'focus:ring-red-500'
-                }`}
+                className={`w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 transition-all duration-300 ease-in-out focus:ring-blue-500`} {/* Changed: Always blue focus */}
                 placeholder="Password"
                 required
               />
@@ -166,9 +158,7 @@ const AdminLogin = () => {
           
           {/* Need help link */}
           <div className="text-right">
-            <a href="#" className={`text-sm hover:underline ${
-              userType === 'admin' ? 'text-blue-600' : 'text-red-600'
-            } transition-colors duration-300 ease-in-out`}>
+            <a href="#" className={`text-sm hover:underline text-blue-600 transition-colors duration-300 ease-in-out`}> {/* Changed: Always blue link */}
               Need help?
             </a>
           </div>
@@ -177,11 +167,7 @@ const AdminLogin = () => {
           <button
             type="submit"
             disabled={isLoading}
-            className={`w-full py-3 px-4 rounded-lg text-white font-medium transition-all duration-300 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed ${
-              userType === 'admin'
-                ? 'bg-blue-600 hover:bg-blue-700 focus:ring-2 focus:ring-blue-500'
-                : 'bg-red-600 hover:bg-red-700 focus:ring-2 focus:ring-red-500'
-            }`}
+            className={`w-full py-3 px-4 rounded-lg text-white font-medium transition-all duration-300 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed bg-blue-600 hover:bg-blue-700 focus:ring-2 focus:ring-blue-500`} {/* Changed: Always blue button */}
           >
             {isLoading ? (
               <div className="flex items-center justify-center">
