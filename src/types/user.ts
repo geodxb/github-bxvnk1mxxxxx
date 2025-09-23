@@ -20,7 +20,7 @@ export interface Investor {
   joinDate: string;
   initialDeposit: number;
   currentBalance: number;
-  role: 'investor';
+  role: 'investor'; // Keep 'investor' here as it's a data role, not a login role
   isActive: boolean;
   accountType?: 'Standard' | 'Pro';
   accountStatus?: string;
