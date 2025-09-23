@@ -6,6 +6,7 @@ import Button from '../../components/common/Button';
 import Modal from '../../components/common/Modal';
 // Removed: import WithdrawalRequestForm from '../../components/investor/WithdrawalRequestForm';
 import { FirestoreService } from '../../services/firestoreService';
+import { useWithdrawalRequests, useInvestors } from '../../hooks/useFirestore';
 // Removed: import ProofOfFundsForm from '../../components/investor/ProofOfFundsForm';
 import WithdrawalFlagModal from '../../components/admin/WithdrawalFlagModal';
 import { useWithdrawalFlags } from '../../hooks/useWithdrawalFlags';
