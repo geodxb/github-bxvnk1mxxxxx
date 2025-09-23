@@ -5,7 +5,7 @@ import Button from '../common/Button';
 import Modal from '../common/Modal';
 import WithdrawalProgressBar from '../common/WithdrawalProgressBar';
 import ProofOfTransferGenerator from '../admin/ProofOfTransferGenerator';
-import { TrendingUp, TrendingDown, LogIn, ArrowDownRight, CheckCircle, AlertTriangle } from 'lucide-react';
+import { TrendingUp, TrendingDown, LogIn, ArrowDownRight, CheckCircle, AlertTriangle, DollarSign, RefreshCw, ArrowUpRight, ArrowLeft } from 'lucide-react';
 import { useTransactions } from '../../hooks/useFirestore';
 import { useInvestors } from '../../hooks/useFirestore';
 import { FirestoreService } from '../../services/firestoreService';
@@ -14,7 +14,7 @@ import { X } from 'lucide-react';
 
 interface TransactionsTableProps {
   investorId: string;
-  filterType?: 'Deposit' | 'Earnings' | 'Withdrawal';
+  filterType?: 'Deposit' | 'Earnings' | 'Withdrawal' | 'Credit' | 'Adjustment' | 'Cancelled'; // Made optional
   investorName?: string;
   onTransactionUpdate?: () => void;
   onOpenProofOfFunds?: (withdrawal: any) => void;
@@ -23,6 +23,8 @@ interface TransactionsTableProps {
 const TransactionsTable = ({ investorId, filterType, investorName, onTransactionUpdate, onOpenProofOfFunds }: TransactionsTableProps) => {
   const { user } = useAuth();
   const { transactions: allTransactions, loading, error } = useTransactions(investorId);
+  
+  // Filter transactions based on filterType if provided, otherwise show all
   const transactions = filterType 
     ? allTransactions.filter(tx => tx.type === filterType)
     : allTransactions;
@@ -114,12 +116,24 @@ const TransactionsTable = ({ investorId, filterType, investorName, onTransaction
               <ArrowDownRight size={12} className="text-gray-600" />
             </div>
           )}
+          {value === 'Credit' && (
+            <div className="w-6 h-6 bg-gray-100 rounded-lg flex items-center justify-center">
+              <ArrowUpRight size={12} className="text-gray-600" />
+            </div>
+          )}
+          {value === 'Adjustment' && (
+            <div className="w-6 h-6 bg-gray-100 rounded-lg flex items-center justify-center">
+              <RefreshCw size={12} className="text-gray-600" />
+            </div>
+          )}
           <div>
             <p className="font-semibold text-gray-900">{value}</p>
             <p className="text-xs text-gray-500 font-medium">
               {value === 'Deposit' && 'Funds added'}
               {value === 'Earnings' && 'Trading profit'}
               {value === 'Withdrawal' && 'Funds withdrawn'}
+              {value === 'Credit' && 'Account credited'}
+              {value === 'Adjustment' && 'Balance adjusted'}
             </p>
           </div>
         </div>
@@ -155,10 +169,10 @@ const TransactionsTable = ({ investorId, filterType, investorName, onTransaction
       render: (value: number, row: any) => (
         <div className="text-right space-y-1">
           <div className="text-lg font-bold text-gray-900">
-            {row.type === 'Withdrawal' ? '-' : '+'}${Math.abs(value).toLocaleString()}
+            {['Withdrawal', 'Adjustment'].includes(row.type) && value < 0 ? '-' : '+'}${Math.abs(value).toLocaleString()}
           </div>
           <div className="text-xs px-2 py-1 rounded-full inline-block bg-gray-100 text-gray-700 font-medium">
-            {row.type === 'Withdrawal' ? 'Debited' : 'Credited'}
+            {['Withdrawal', 'Adjustment'].includes(row.type) && value < 0 ? 'Debited' : 'Credited'}
           </div>
         </div>
       ),
@@ -171,13 +185,17 @@ const TransactionsTable = ({ investorId, filterType, investorName, onTransaction
         let icon = <CheckCircle size={12} />;
         
         if (value === 'Pending') {
-          statusClass = 'bg-gray-50 text-gray-700 border border-gray-200';
-          icon = <div className="w-3 h-3 bg-gray-500 rounded-full animate-pulse"></div>;
+          statusClass = 'bg-yellow-100 text-yellow-800 border border-yellow-200';
+          icon = <Clock size={12} />;
         } else if (value === 'Rejected') {
-          statusClass = 'bg-gray-50 text-gray-700 border border-gray-200';
-          icon = <div className="w-3 h-3 bg-gray-500 rounded-full"></div>;
-        } else {
+          statusClass = 'bg-red-100 text-red-800 border border-red-200';
+          icon = <XCircle size={12} />;
+        } else if (value === 'Cancelled') {
           statusClass = 'bg-gray-100 text-gray-800 border border-gray-200';
+          icon = <X size={12} />;
+        } else if (value === 'Completed' || value === 'Credited') {
+          statusClass = 'bg-green-100 text-green-800 border border-green-200';
+          icon = <CheckCircle size={12} />;
         }
         
         return (
@@ -186,7 +204,7 @@ const TransactionsTable = ({ investorId, filterType, investorName, onTransaction
               {icon}
               <span>{value}</span>
             </div>
-            {row.type === 'Withdrawal' && value === 'Completed' && (
+            {row.type === 'Withdrawal' && (value === 'Completed' || value === 'Credited') && (
               <div className="flex items-center space-x-1 text-xs text-gray-600 font-medium">
                 <CheckCircle size={10} />
                 <span>Processed</span>
@@ -196,12 +214,55 @@ const TransactionsTable = ({ investorId, filterType, investorName, onTransaction
         );
       },
     },
-    // Add actions column for withdrawal transactions
-    ...(filterType === 'Withdrawal' ? [{
+    {
+      key: 'description',
+      header: 'Details',
+      render: (value: string, row: any) => (
+        <div className="space-y-1 max-w-xs">
+          <p className="text-sm text-gray-900 font-medium">
+            {value || `${row.type} transaction`}
+          </p>
+          {row.type === 'Withdrawal' && (
+            <div className="space-y-1">
+              <p className="text-xs text-gray-600 font-medium">
+                Request #{row.id.slice(-8)}
+              </p>
+              <p className="text-xs text-gray-500">
+                Bank transfer
+              </p>
+            </div>
+          )}
+          {row.type === 'Deposit' && (
+            <p className="text-xs text-gray-500">
+              Account credit
+            </p>
+          )}
+          {row.type === 'Earnings' && (
+            <p className="text-xs text-gray-500">
+              Trading activity
+            </p>
+          )}
+          {row.type === 'Credit' && (
+            <p className="text-xs text-gray-500">
+              Manual credit
+            </p>
+          )}
+          {row.type === 'Adjustment' && (
+            <p className="text-xs text-gray-500">
+              Balance adjustment
+            </p>
+          )}
+        </div>
+      ),
+    },
+    // Actions column for withdrawal transactions
+    {
       key: 'actions',
       header: 'Actions',
       align: 'center' as 'center',
       render: (_: any, row: any) => {
+        if (row.type !== 'Withdrawal') return null; // Only show actions for withdrawals
+        
         return (
           <div className="flex flex-col space-y-2">
             {/* Cancel button for pending withdrawals */}
@@ -235,7 +296,7 @@ const TransactionsTable = ({ investorId, filterType, investorName, onTransaction
                   variant="outline"
                   onClick={() => {
                     // Find the investor data for this transaction
-                    const investorData = investor || {
+                    const investorData = {
                       id: investorId,
                       name: investorName || 'Unknown Investor',
                       country: 'Unknown',
@@ -251,7 +312,6 @@ const TransactionsTable = ({ investorId, filterType, investorName, onTransaction
                     
                     setSelectedProofTransaction(row);
                     setSelectedProofInvestor(investorData);
-                    setSelectedProofInvestor(investor);
                     setShowProofOfTransfer(true);
                   }}
                   className="text-xs w-full bg-gray-900 text-white hover:bg-gray-800"
@@ -270,37 +330,6 @@ const TransactionsTable = ({ investorId, filterType, investorName, onTransaction
           </div>
         );
       }
-    }] : []),
-    {
-      key: 'description',
-      header: 'Details',
-      render: (value: string, row: any) => (
-        <div className="space-y-1 max-w-xs">
-          <p className="text-sm text-gray-900 font-medium">
-            {value || `${row.type} transaction`}
-          </p>
-          {row.type === 'Withdrawal' && (
-            <div className="space-y-1">
-              <p className="text-xs text-gray-600 font-medium">
-                Request #{row.date.replace(/-/g, '')}
-              </p>
-              <p className="text-xs text-gray-500">
-                Bank transfer
-              </p>
-            </div>
-          )}
-          {row.type === 'Deposit' && (
-            <p className="text-xs text-gray-500">
-              Account credit
-            </p>
-          )}
-          {row.type === 'Earnings' && (
-            <p className="text-xs text-gray-500">
-              Trading activity
-            </p>
-          )}
-        </div>
-      ),
     },
   ];
 
@@ -411,10 +440,10 @@ const TransactionsTable = ({ investorId, filterType, investorName, onTransaction
                 withdrawalId={withdrawal.id}
                 submissionDate={withdrawal.date}
                 currentStatus={withdrawal.status as any}
-                approvalDate={withdrawal.status === 'Approved' || withdrawal.status === 'Credited' ? withdrawal.date : null}
-                creditDate={withdrawal.status === 'Credited' ? withdrawal.date : null}
-                rejectionDate={withdrawal.status === 'Rejected' ? withdrawal.date : null}
-                amount={Math.abs(withdrawal.amount)}
+                approvalDate={withdrawal.approvalDate ? withdrawal.approvalDate.toISOString().split('T')[0] : null}
+                creditDate={withdrawal.status === 'Credited' ? withdrawal.processedAt?.toISOString().split('T')[0] : null}
+                rejectionDate={withdrawal.status === 'Rejected' ? withdrawal.processedAt?.toISOString().split('T')[0] : null}
+                amount={withdrawal.amount}
                 investorName={investorName}
                 rejectionReason={withdrawal.description?.includes('Rejected') ? withdrawal.description : undefined}
               />
@@ -582,7 +611,6 @@ const TransactionsTable = ({ investorId, filterType, investorName, onTransaction
         onClose={() => {
           setShowProofOfTransfer(false);
           setSelectedProofTransaction(null);
-          setSelectedProofInvestor(null);
           setSelectedProofInvestor(null);
         }}
         title="PROOF OF WIRE TRANSFER"
