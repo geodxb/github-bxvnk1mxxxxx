@@ -169,9 +169,17 @@ export class FirestoreService {
   }
 
   // Add credit to investor
-  static async addCreditToInvestor(investorId: string, amount: number, adminId: string, reason: string): Promise<void> {
+  static async addCreditToInvestor(
+    investorId: string, 
+    amount: number, 
+    adminId: string, 
+    category: 'Credit' | 'Earnings', // New parameter
+    reason: string,
+    startDate?: string, // New parameter
+    endDate?: string // New parameter
+  ): Promise<void> {
     try {
-      console.log(`🔥 Firebase: Adding $${amount.toLocaleString()} credit to investor ${investorId} for reason: ${reason}`);
+      console.log(`🔥 Firebase: Adding $${amount.toLocaleString()} ${category} to investor ${investorId} for reason: ${reason}`);
       
       // Get current investor data
       const investor = await this.getInvestorById(investorId);
@@ -183,14 +191,20 @@ export class FirestoreService {
       const newBalance = investor.currentBalance + amount;
       await this.updateInvestorBalance(investorId, newBalance);
       
+      // Construct description based on category and dates
+      let transactionDescription = reason;
+      if (category === 'Earnings' && startDate && endDate) {
+        transactionDescription = `${reason} (Period: ${startDate} to ${endDate})`;
+      }
+
       // Add transaction record
       await this.addTransaction({
         investorId,
-        type: 'Credit',
+        type: category, // Use the passed category as transaction type
         amount,
         date: new Date().toISOString().split('T')[0],
         status: 'Completed',
-        description: reason, // Use the provided reason as description
+        description: transactionDescription,
         processedBy: adminId
       });
       
