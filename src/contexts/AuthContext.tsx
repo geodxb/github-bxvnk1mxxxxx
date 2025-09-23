@@ -1,5 +1,5 @@
 import { createContext, useState, useContext, useEffect, ReactNode } from 'react';
-import { User, UserRole } from '../types/user';
+import { User } from '../types/user'; // Removed: UserRole import
 import { auth, db } from '../lib/firebase';
 import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
@@ -63,8 +63,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             const userData = userDoc.data();
             console.log('✅ User document found, setting user data', userData.role);
             
-            // Check for governor role
-            const userRole = userData.role === 'governor' ? 'governor' : userData.role;
+            // Check for governor role (simplified as investor role is removed)
+            const userRole = userData.role; // Assuming userData.role is already 'admin' or 'governor'
             
             // Only update user state if it's different to prevent unnecessary re-renders
             setUser(prevUser => {
@@ -89,13 +89,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               return prevUser;
             });
           } else if (firebaseUser.email === 'crisdoraodxb@gmail.com') {
-            // Auto-create admin user
+            // Auto-create admin user (simplified role assignment)
             console.log('✅ Creating admin user');
             setUser({
               id: firebaseUser.uid,
               name: 'Cristian Rolando Dorao',
               email: firebaseUser.email,
-              role: 'governor' as UserRole,
+              role: 'governor', // Directly assign 'governor' role
               createdAt: new Date(),
               updatedAt: new Date()
             });
@@ -158,5 +158,4 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   );
 };
 
-// Export UserRole for backward compatibility
-export type { UserRole };
+// Removed: export type { UserRole };
