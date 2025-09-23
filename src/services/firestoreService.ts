@@ -169,9 +169,9 @@ export class FirestoreService {
   }
 
   // Add credit to investor
-  static async addCreditToInvestor(investorId: string, amount: number, adminId: string): Promise<void> {
+  static async addCreditToInvestor(investorId: string, amount: number, adminId: string, reason: string): Promise<void> {
     try {
-      console.log(`🔥 Firebase: Adding $${amount.toLocaleString()} credit to investor ${investorId}`);
+      console.log(`🔥 Firebase: Adding $${amount.toLocaleString()} credit to investor ${investorId} for reason: ${reason}`);
       
       // Get current investor data
       const investor = await this.getInvestorById(investorId);
@@ -190,7 +190,7 @@ export class FirestoreService {
         amount,
         date: new Date().toISOString().split('T')[0],
         status: 'Completed',
-        description: `Credit added by admin`,
+        description: reason, // Use the provided reason as description
         processedBy: adminId
       });
       
@@ -986,7 +986,8 @@ export class FirestoreService {
           if (data.requests && Array.isArray(data.requests)) {
             return data.requests.some((request: any) => 
               request.investorName && 
-              request.investorName.toLowerCase().includes(investorName.toLowerCase())
+              request.investorName.toLowerCase().includes(investorName.toLowerCase()) &&
+              request.status === 'payed'
             );
           }
           
@@ -1095,7 +1096,7 @@ export class FirestoreService {
       const auditQuery = query(
         collection(db, 'auditLogs'),
         orderBy('timestamp', 'desc'),
-        limit(limitCount)
+        ...(limitCount > 0 ? [limit(limitCount)] : [])
       );
       
       const querySnapshot = await getDocs(auditQuery);
