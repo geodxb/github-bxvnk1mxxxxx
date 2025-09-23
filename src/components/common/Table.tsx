@@ -46,7 +46,7 @@ const Table = ({
               <th 
                 key={column.key}
                 scope="col"
-                className={`px-6 py-4 text-sm font-semibold text-gray-600 ${alignClass(column.align)}`}
+                className={`px-4 py-3 text-sm font-semibold text-gray-700 ${alignClass(column.align)}`}
                 style={column.width ? { width: column.width } : {}}
               >
                 {column.header}
@@ -54,7 +54,7 @@ const Table = ({
             ))}
           </tr>
         </thead>
-        <tbody className="divide-y divide-gray-50">
+        <tbody className="divide-y divide-gray-100">
           {isLoading ? (
             <tr>
               <td 
@@ -62,7 +62,7 @@ const Table = ({
                 className="px-6 py-12 text-center text-gray-500"
               >
                 <div className="flex justify-center items-center">
-                  <div className="w-6 h-6 border-2 border-purple-500 border-t-transparent rounded-full animate-spin mr-3"></div>
+                  <div className="w-6 h-6 border-2 border-gray-500 border-t-transparent rounded-full animate-spin mr-3"></div>
                   Loading...
                 </div>
               </td>
@@ -85,7 +85,7 @@ const Table = ({
                 {columns.map((column) => (
                   <td 
                     key={`${row.id || index}-${column.key}`}
-                    className={`px-6 py-4 text-sm text-gray-700 ${alignClass(column.align)}`}
+                    className={`px-4 py-3 text-sm text-gray-700 ${alignClass(column.align)}`}
                   >
                     {renderCell(row, column)}
                   </td>

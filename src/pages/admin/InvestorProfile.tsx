@@ -514,7 +514,7 @@ const InvestorProfile = () => {
         ];
 
         return (
-          <Card title="TRANSACTION HISTORY">
+          <Card title="TRANSACTION HISTORY" className="bg-white border border-gray-200 shadow-sm">
             <Table
               columns={transactionColumns}
               data={transactions}
