@@ -14,9 +14,9 @@ import Card from '../../components/common/Card';
 import WithdrawalRestrictionCheck from '../../components/investor/WithdrawalRestrictionCheck';
 import { useAuth } from '../../contexts/AuthContext';
 import { useInvestor, useTransactions, useInvestorWithdrawalRequests, useWithdrawalRequests } from '../../hooks/useFirestore';
-import { DollarSign, TrendingUp, Clock, User, FileText, ArrowDownRight, Ban } from 'lucide-react';
+import { DollarSign, TrendingUp, Clock, User, FileText, ArrowDownRight, Ban, History } from 'lucide-react';
 
-type TabType = 'performance' | 'transactions' | 'withdrawals' | 'profile' | 'withdrawal-history';
+type TabType = 'performance' | 'transactions' | 'withdrawals' | 'profile' | 'withdrawal-history' | 'transaction-history';
 
 const InvestorDashboard = () => {
   const { user, setGlobalLoading } = useAuth();
@@ -253,6 +253,14 @@ const InvestorDashboard = () => {
             onOpenProofOfFunds={handleOpenProofOfFunds}
           />
         );
+      case 'transaction-history':
+        return (
+          <TransactionsTable
+            investorId={currentInvestor.id}
+            investorName={currentInvestor.name}
+            onOpenProofOfFunds={handleOpenProofOfFunds}
+          />
+        );
     }
   };
 
@@ -333,6 +341,17 @@ const InvestorDashboard = () => {
                 {activeWithdrawals.length}
               </span>
             )}
+          </button>
+          <button
+            onClick={() => setActiveTab('transaction-history')}
+            className={`py-4 px-2 flex items-center ${
+              activeTab === 'transaction-history'
+                ? 'border-b-2 border-blue-500 text-blue-600'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            <History size={18} className="mr-2" />
+            Transaction History
           </button>
           <button
             onClick={() => setActiveTab('profile')}
