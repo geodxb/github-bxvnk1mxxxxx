@@ -2,12 +2,12 @@ import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import EditableInvestorProfile from '../../components/admin/EditableInvestorProfile';
-import WalletOverview from '../../components/investor/WalletOverview';
+// Removed: import WalletOverview from '../../components/investor/WalletOverview';
 import PerformanceChart from '../../components/common/PerformanceChart';
 import AddCreditModal from '../../components/admin/AddCreditModal';
 import DeleteInvestorModal from '../../components/admin/DeleteInvestorModal';
 import AccountClosureModal from '../../components/admin/AccountClosureModal';
-import ProofOfFundsForm from '../../components/investor/ProofOfFundsForm';
+// Removed: import ProofOfFundsForm from '../../components/investor/ProofOfFundsForm';
 import ContractDownload from '../../components/admin/ContractDownload';
 import SubmitTicketPanel from '../../components/admin/SubmitTicketPanel';
 import BankAccountRegistration from '../../components/admin/BankAccountRegistration';
@@ -63,7 +63,7 @@ const InvestorProfile = () => {
             {error || "The investor you're looking for doesn't exist or has been removed."}
           </p>
           <button
-            onClick={() => navigate('/admin')}
+            onClick={() => navigate('/admin/investors')}
             className="px-4 py-2 bg-gray-900 text-white font-medium hover:bg-gray-800 transition-colors rounded-lg"
           >
             <ChevronLeft size={18} className="mr-2 inline" />
@@ -158,10 +158,10 @@ const InvestorProfile = () => {
             {/* Bank Account Management Section */}
             <BankAccountRegistration investor={investorData} onUpdate={refetch} />
             
-            <WalletOverview
+            {/* Removed: <WalletOverview
               initialDeposit={investorData.initialDeposit || 0}
               currentBalance={investorData.currentBalance || 0}
-            />
+            /> */}
             
             {/* Account Deletion Status or Danger Zone */}
             {isDeletionRequested ? (
@@ -672,7 +672,7 @@ const InvestorProfile = () => {
         }}
       />
       
-      <ProofOfFundsForm
+      {/* Removed: <ProofOfFundsForm
         isOpen={proofOfFundsModalOpen}
         onClose={() => {
           setProofOfFundsModalOpen(false);
@@ -680,7 +680,7 @@ const InvestorProfile = () => {
         }}
         investor={investorData}
         withdrawal={selectedWithdrawal}
-      />
+      /> */}
           {/* Real-time listeners will automatically update */}
     </DashboardLayout>
   );
