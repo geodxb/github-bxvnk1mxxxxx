@@ -4,7 +4,7 @@ import Card from '../../components/common/Card';
 import Table from '../../components/common/Table';
 import Button from '../../components/common/Button';
 import Modal from '../../components/common/Modal';
-import WithdrawalRequestForm from '../../components/investor/WithdrawalRequestForm';
+// Removed: import WithdrawalRequestForm from '../../components/investor/WithdrawalRequestForm';
 import { FirestoreService } from '../../services/firestoreService';
 import ProofOfFundsForm from '../../components/investor/ProofOfFundsForm';
 import WithdrawalFlagModal from '../../components/admin/WithdrawalFlagModal';
