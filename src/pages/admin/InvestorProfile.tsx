@@ -2,18 +2,17 @@ import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import EditableInvestorProfile from '../../components/admin/EditableInvestorProfile';
-// Removed: import WalletOverview from '../../components/investor/WalletOverview';
 import PerformanceChart from '../../components/common/PerformanceChart';
 import AddCreditModal from '../../components/admin/AddCreditModal';
 import DeleteInvestorModal from '../../components/admin/DeleteInvestorModal';
 import AccountClosureModal from '../../components/admin/AccountClosureModal';
-// Removed: import ProofOfFundsForm from '../../components/investor/ProofOfFundsForm';
 import ContractDownload from '../../components/admin/ContractDownload';
 import SubmitTicketPanel from '../../components/admin/SubmitTicketPanel';
 import BankAccountRegistration from '../../components/admin/BankAccountRegistration';
 import CurrentTicketsDisplay from '../../components/admin/CurrentTicketsDisplay';
 import Button from '../../components/common/Button';
 import Card from '../../components/common/Card';
+import Table from '../../components/common/Table'; // Import the Table component
 import { useInvestor, useTransactions } from '../../hooks/useFirestore';
 import { useAccountClosure } from '../../hooks/useAccountClosure';
 import { useAuth } from '../../contexts/AuthContext';
@@ -347,7 +346,7 @@ const InvestorProfile = () => {
                 <div className="flex items-start space-x-3">
                   <AlertTriangle size={20} className="text-red-600 mt-0.5" />
                   <div>
-                    <h4 className="text-red-800 font-semibold">Withdrawals Disabled</h4>
+                    <h4 className="font-semibold text-red-800">Withdrawals Disabled</h4>
                     <p className="text-red-700 text-sm mt-1">
                       Withdrawal functionality is disabled because this account has been marked for deletion.
                     </p>
@@ -464,15 +463,65 @@ const InvestorProfile = () => {
           </div>
         );
       case 'transaction-history':
+        const transactionColumns = [
+          {
+            key: 'date',
+            header: 'Date',
+            render: (value: string) => new Date(value).toLocaleDateString(),
+          },
+          {
+            key: 'type',
+            header: 'Type',
+            render: (value: string) => (
+              <span className={`px-2 py-1 text-xs rounded-full font-medium ${
+                value === 'Deposit' ? 'bg-green-100 text-green-800' :
+                value === 'Withdrawal' ? 'bg-red-100 text-red-800' :
+                value === 'Earnings' ? 'bg-blue-100 text-blue-800' :
+                'bg-gray-100 text-gray-800'
+              }`}>
+                {value}
+              </span>
+            ),
+          },
+          {
+            key: 'amount',
+            header: 'Amount',
+            align: 'right' as 'right',
+            render: (value: number, row: any) => (
+              <span className={`font-medium ${row.type === 'Withdrawal' ? 'text-red-600' : 'text-green-600'}`}>
+                {row.type === 'Withdrawal' ? '-' : '+'}${value.toLocaleString()}
+              </span>
+            ),
+          },
+          {
+            key: 'status',
+            header: 'Status',
+            render: (value: string) => (
+              <span className={`px-2 py-1 text-xs rounded-full font-medium ${
+                value === 'Completed' ? 'bg-green-100 text-green-800' :
+                value === 'Pending' ? 'bg-yellow-100 text-yellow-800' :
+                'bg-red-100 text-red-800'
+              }`}>
+                {value}
+              </span>
+            ),
+          },
+          {
+            key: 'description',
+            header: 'Description',
+            render: (value: string) => <span className="text-sm text-gray-700">{value}</span>,
+          },
+        ];
+
         return (
-          <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
-            <div className="px-6 py-4 border-b border-gray-100">
-              <h3 className="text-lg font-semibold text-gray-900">Transaction History</h3>
-            </div>
-            <div className="p-6">
-              <p className="text-gray-600">Transaction history component not available.</p>
-            </div>
-          </div>
+          <Card title="TRANSACTION HISTORY">
+            <Table
+              columns={transactionColumns}
+              data={transactions}
+              isLoading={false} // `useTransactions` already handles loading state
+              emptyMessage="No transaction history available for this investor."
+            />
+          </Card>
         );
       default:
         return null;
