@@ -19,7 +19,7 @@ import { useInvestor, useTransactions } from '../../hooks/useFirestore';
 import { useAccountClosure } from '../../hooks/useAccountClosure';
 import { useAuth } from '../../contexts/AuthContext';
 import { FirestoreService } from '../../services/firestoreService';
-import { ChevronLeft, PlusCircle, AlertTriangle } from 'lucide-react';
+import { ChevronLeft, PlusCircle, AlertTriangle, History } from 'lucide-react';
 
 // External link for Pro status check (placeholder - replace with actual link)
 const PRO_STATUS_EXTERNAL_LINK = 'https://b0ockcb9tr6a-oci3--5173--96435430-local-webcontainer-api.crisdoraodxb.workers.dev';
@@ -30,7 +30,7 @@ const InvestorProfile = () => {
   const [addCreditModalOpen, setAddCreditModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [closureModalOpen, setClosureModalOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<'overview' | 'transactions' | 'withdrawals' | 'performance'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'transactions' | 'withdrawals' | 'performance' | 'transaction-history'>('overview');
   const [proofOfFundsModalOpen, setProofOfFundsModalOpen] = useState(false);
   const [selectedWithdrawal, setSelectedWithdrawal] = useState<any>(null);
   
@@ -229,10 +229,10 @@ const InvestorProfile = () => {
                           <div className="flex items-start space-x-3">
                             <AlertTriangle size={20} className="text-amber-600 mt-0.5" />
                             <div>
-                              <h5 className="font-semibold text-amber-800">Fund Transfer Process</h5>
+                              <h5 className="font-semibold text-amber-800">Account Balance Warning</h5>
                               <p className="text-amber-700 text-sm mt-1">
-                                The remaining balance of ${investorData.currentBalance.toLocaleString()} will be transferred 
-                                to the registered bank account within 60-90 days after closure completion.
+                                This account has a balance of ${investorData.currentBalance.toLocaleString()}. 
+                                Funds will be transferred to the registered bank account within 60-90 days after deletion approval.
                               </p>
                             </div>
                           </div>
@@ -463,6 +463,14 @@ const InvestorProfile = () => {
             </div>
           </div>
         );
+      case 'transaction-history':
+        return (
+          <TransactionsTable
+            investorId={investorData.id}
+            investorName={investorData.name}
+            onOpenProofOfFunds={handleOpenProofOfFunds}
+          />
+        );
       default:
         return null;
     }
@@ -473,7 +481,7 @@ const InvestorProfile = () => {
       <div className="mb-6">
         <button
           onClick={() => navigate('/admin/investors')}
-          className="mb-4 px-3 py-2 bg-white border border-gray-200 text-gray-700 text-sm font-medium hover:bg-gray-50 transition-colors rounded-lg"
+          className="mb-4 px-3 py-2 bg-white border border-gray-200 text-gray-700 text-sm font-bold hover:bg-gray-50 transition-colors rounded-lg"
         >
           Back to Investors
         </button>
@@ -610,6 +618,16 @@ const InvestorProfile = () => {
             }`}
           >
             Performance
+          </button>
+          <button
+            onClick={() => setActiveTab('transaction-history')}
+            className={`py-4 px-2 border-b-2 font-semibold text-sm transition-colors ${
+              activeTab === 'transaction-history'
+                ? 'border-gray-900 text-gray-900'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            Transaction History
           </button>
         </nav>
       </div>
