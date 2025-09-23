@@ -57,30 +57,17 @@ const MessagesPage = () => {
     return recipients;
   };
 
-  // Auto-create or find conversation for investor users
+  // Auto-create or find conversation for investor users - REMOVED INVESTOR-SPECIFIC LOGIC
   useEffect(() => {
-    if (user?.role === 'investor' && !selectedConversationId) {
-      // For investors, automatically create/find conversation with admin
-      handleNewConversation();
-    }
+    // No auto-creation for investors as they don't log into this dashboard
   }, [user]);
 
   const handleNewConversation = async () => {
-    if (!user) return;
-    
-    try {
-      console.log('🔄 Creating conversation for user:', user.name, 'Role:', user.role);
-      const conversationId = await MessageService.getOrCreateConversation(
-        user.id,
-        user.name,
-        user.role === 'admin' ? 'admin' : 'affiliate'
-      );
-      console.log('✅ Conversation created/found:', conversationId);
-      setSelectedConversationId(conversationId);
-      setShowNewMessageForm(false);
-    } catch (error) {
-      console.error('Error creating conversation:', error);
-    }
+    // This function is now primarily for admin to initiate new conversations
+    setShowNewMessageForm(true);
+    setSelectedRecipient(null);
+    setNewMessageContent('');
+    setSelectedDepartment('general');
   };
 
   const handleSendNewMessage = async () => {
@@ -103,11 +90,13 @@ const MessagesPage = () => {
         
         let targetUserId = selectedRecipient.id;
         let targetUserName = selectedRecipient.name;
+        let targetUserRole = selectedRecipient.role; // Get role from selected recipient
         
         // Route Management Team to Sam Hivanek
         if (selectedRecipient.id === 'management_team') {
           targetUserId = '2cSQTHfSSPUXAVaSKGl8zdO9hiC3'; // Sam's Firebase UID
           targetUserName = 'Sam Hivanek';
+          targetUserRole = 'governor';
         }
         
         // Create conversation with the target user
@@ -134,22 +123,10 @@ const MessagesPage = () => {
         
         setSelectedConversationId(actualConversationId);
       } else {
-        // For investor users, use existing logic
-        console.log('🔄 Sending new message from:', user.name, 'Role:', user.role);
-        const messageId = await MessageService.sendMessage(
-          user.id,
-          user.name,
-          user.role === 'admin' ? 'admin' : 'affiliate',
-          newMessageContent.trim()
-        );
-        
-        // Get the conversation ID for this user
-        const conversationId = await MessageService.getOrCreateConversation(
-          user.id,
-          user.name,
-          user.role === 'admin' ? 'admin' : 'affiliate'
-        );
-        setSelectedConversationId(conversationId);
+        // This else block should ideally not be reached if only admin/governor can log in
+        // If it were, it would be for an investor to message admin/governor
+        console.error('Attempted to send message from non-admin user on admin message page.');
+        alert('Unauthorized message attempt.');
       }
       
       setNewMessageContent('');
@@ -177,13 +154,13 @@ const MessagesPage = () => {
         {selectedConversationId ? (
           <MessageThread
             conversationId={selectedConversationId}
-            recipientName={user?.role === 'admin' ? 'Affiliate' : 'Admin'}
+            recipientName={user?.role === 'admin' ? 'Investor' : 'Admin'} // Changed 'Affiliate' to 'Investor'
           />
         ) : showNewMessageForm ? (
           <div className="flex-1 flex flex-col">
             <div className="px-6 py-4 border-b border-gray-200">
               <h3 className="text-lg font-semibold text-gray-900 uppercase tracking-wide">
-                {user?.role === 'admin' ? 'NEW ADMIN MESSAGE' : 'New Message'}
+                NEW ADMIN MESSAGE
               </h3>
             </div>
             
@@ -303,20 +280,17 @@ const MessagesPage = () => {
                 <MessageSquare size={40} className="text-gray-400" />
               </div>
               <h3 className="text-xl font-semibold text-gray-900 mb-4 uppercase tracking-wide">
-                {user?.role === 'admin' ? 'ADMIN COMMUNICATION CENTER' : 'Admin Communication'}
+                ADMIN COMMUNICATION CENTER
               </h3>
               <p className="text-gray-600 mb-6 uppercase tracking-wide text-sm">
-                {user?.role === 'admin' 
-                  ? 'SEND MESSAGES TO ANY INVESTOR WITH DEPARTMENT CONTEXT'
-                  : 'Start a conversation with the admin team'
-                }
+                COMMUNICATE WITH MANAGEMENT TEAM AND INVESTORS
               </p>
               <button
                 onClick={() => setShowNewMessageForm(true)}
                 className="px-6 py-3 bg-gray-900 text-white font-bold hover:bg-gray-800 transition-colors uppercase tracking-wide border border-gray-700"
               >
                 <Send size={18} className="mr-2 inline" />
-                {user?.role === 'admin' ? 'START NEW COMMUNICATION' : 'Start New Conversation'}
+                START NEW COMMUNICATION
               </button>
             </div>
           </div>
