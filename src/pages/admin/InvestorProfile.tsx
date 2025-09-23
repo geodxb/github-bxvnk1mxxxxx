@@ -4,7 +4,6 @@ import DashboardLayout from '../../components/layout/DashboardLayout';
 import EditableInvestorProfile from '../../components/admin/EditableInvestorProfile';
 import WalletOverview from '../../components/investor/WalletOverview';
 import PerformanceChart from '../../components/common/PerformanceChart';
-import TransactionsTable from '../../components/investor/TransactionsTable';
 import AddCreditModal from '../../components/admin/AddCreditModal';
 import DeleteInvestorModal from '../../components/admin/DeleteInvestorModal';
 import AccountClosureModal from '../../components/admin/AccountClosureModal';
@@ -443,13 +442,14 @@ const InvestorProfile = () => {
             )}
 
             {/* Detailed Withdrawal History */}
-            <TransactionsTable 
-              investorId={investorData.id}
-              filterType="Withdrawal"
-              investorName={investorData.name}
-              onOpenProofOfFunds={handleOpenProofOfFunds}
-              onTransactionUpdate={refetch}
-            />
+            <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
+              <div className="px-6 py-4 border-b border-gray-100">
+                <h3 className="text-lg font-semibold text-gray-900">Withdrawal History</h3>
+              </div>
+              <div className="p-6">
+                <p className="text-gray-600">Withdrawal history component not available.</p>
+              </div>
+            </div>
           </div>
         );
       case 'performance':
@@ -465,11 +465,14 @@ const InvestorProfile = () => {
         );
       case 'transaction-history':
         return (
-          <TransactionsTable
-            investorId={investorData.id}
-            investorName={investorData.name}
-            onOpenProofOfFunds={handleOpenProofOfFunds}
-          />
+          <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
+            <div className="px-6 py-4 border-b border-gray-100">
+              <h3 className="text-lg font-semibold text-gray-900">Transaction History</h3>
+            </div>
+            <div className="p-6">
+              <p className="text-gray-600">Transaction history component not available.</p>
+            </div>
+          </div>
         );
       default:
         return null;

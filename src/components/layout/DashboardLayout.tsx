@@ -1,7 +1,6 @@
 import { ReactNode, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import SupportChat from '../support/SupportChat';
 import NotificationBell from '../common/NotificationBell';
 import LanguageToggle from '../common/LanguageToggle';
 import AnnouncementBanner from '../common/AnnouncementBanner';
@@ -35,7 +34,6 @@ interface NavItem {
 const DashboardLayout = ({ children, title }: DashboardLayoutProps) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
-  const [supportChatOpen, setSupportChatOpen] = useState(false);
   const { user, logout, setGlobalLoading } = useAuth();
   const { announcements } = useAnnouncements(user?.role || 'investor');
   const navigate = useNavigate();
@@ -191,18 +189,6 @@ const DashboardLayout = ({ children, title }: DashboardLayoutProps) => {
              <div className="hidden md:block">
                <LanguageToggle />
              </div>
-              
-              {/* Support Chat Button - Only show for admin users */}
-              {user?.role === 'admin' && (
-               <div className="hidden lg:block">
-                 <button
-                   onClick={() => setSupportChatOpen(true)}
-                   className="flex items-center space-x-2 text-sm text-gray-600 hover:text-blue-600 transition-colors whitespace-nowrap"
-                 >
-                   <span className="hidden lg:inline font-medium">Support</span>
-                 </button>
-               </div>
-              )}
 
               {/* User Menu */}
               <button
@@ -311,17 +297,6 @@ const DashboardLayout = ({ children, title }: DashboardLayoutProps) => {
                 ))}
 
                 <div className="px-6 py-3 mt-6 border-t border-gray-100">
-                  {/* Support Chat - Only show for admin users */}
-                  {user?.role === 'admin' && (
-                    <button
-                      onClick={() => {
-                        setSidebarOpen(false);
-                      }}
-                      className="flex items-center w-full text-gray-600 hover:text-blue-600 transition-colors mb-3"
-                    >
-                      <span className="font-medium">Support Chat</span>
-                    </button>
-                  )}
                   <button
                     onClick={handleLogout}
                     className="flex items-center w-full text-gray-600 hover:text-red-600 transition-colors"
@@ -379,14 +354,6 @@ const DashboardLayout = ({ children, title }: DashboardLayoutProps) => {
           {children}
         </main>
       </div>
-
-      {/* Support Chat */}
-      {user?.role === 'admin' && (
-        <SupportChat 
-          isOpen={supportChatOpen} 
-          onClose={() => setSupportChatOpen(false)} 
-        />
-      )}
     </div>
   );
 };

@@ -128,7 +128,8 @@ export class NotificationService {
     recipientId: string,
     recipientRole: 'admin' | 'governor', // Changed 'investor' to 'investor'
     messageContent: string,
-    conversationId: string
+    conversationId: string,
+    department?: string
   ): Promise<void> {
     try {
       const truncatedMessage = messageContent.length > 100 

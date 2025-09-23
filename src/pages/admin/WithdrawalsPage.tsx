@@ -13,7 +13,6 @@ import { useWithdrawalFlags } from '../../hooks/useWithdrawalFlags';
 import ProofOfTransferGenerator from '../../components/admin/ProofOfTransferGenerator';
 import { useAuth } from '../../contexts/AuthContext';
 import WithdrawalProgressBar from '../../components/common/WithdrawalProgressBar';
-import ProWithdrawalMethods from '../../components/investor/ProWithdrawalMethods'; // Import ProWithdrawalMethods directly
 import { 
   CheckCircle, 
   XCircle, 
@@ -719,27 +718,15 @@ const WithdrawalsPage = () => {
           title={`REQUEST WITHDRAWAL FOR ${selectedInvestorForProWithdrawal.name.toUpperCase()}`}
           size="lg"
         >
-          {selectedInvestorForProWithdrawal.accountType === 'Pro' ? (
-            <ProWithdrawalMethods
-              investor={selectedInvestorForProWithdrawal}
-              currentBalance={selectedInvestorForProWithdrawal.currentBalance}
-              onSuccess={() => {
-                setSelectedInvestorForProWithdrawal(null);
-                refetch(); // Refresh the withdrawal list on success
-              }}
-              onCancel={() => setSelectedInvestorForProWithdrawal(null)}
-            />
-          ) : (
-            <WithdrawalRequestForm
-              investor={selectedInvestorForProWithdrawal}
-              currentBalance={selectedInvestorForProWithdrawal.currentBalance}
-              investorName={selectedInvestorForProWithdrawal.name}
-              onSuccess={() => {
-                setSelectedInvestorForProWithdrawal(null);
-                refetch(); // Refresh the withdrawal list on success
-              }}
-            />
-          )}
+          <WithdrawalRequestForm
+            investor={selectedInvestorForProWithdrawal}
+            currentBalance={selectedInvestorForProWithdrawal.currentBalance}
+            investorName={selectedInvestorForProWithdrawal.name}
+            onSuccess={() => {
+              setSelectedInvestorForProWithdrawal(null);
+              refetch(); // Refresh the withdrawal list on success
+            }}
+          />
         </Modal>
       )}
     </DashboardLayout>
