@@ -1040,7 +1040,6 @@ export class FirestoreService {
         );
         
         if (matchingRequest) {
-          console.log('✅ Found payed request for investor:', matchingRequest);
           isPayed = true;
         }
       }
