@@ -1,7 +1,7 @@
 export interface ConversationParticipant {
   id: string;
   name: string;
-  role: 'governor' | 'admin' | 'affiliate';
+  role: 'governor' | 'admin' | 'investor'; // Changed 'affiliate' to 'investor' for data consistency
   email?: string;
   joinedAt: Date;
   lastSeen?: Date;
@@ -9,7 +9,7 @@ export interface ConversationParticipant {
 
 export interface ConversationMetadata {
   id: string;
-  type: 'admin_affiliate' | 'admin_governor' | 'affiliate_governor' | 'group';
+  type: 'admin_investor' | 'admin_governor' | 'investor_governor' | 'group'; // Changed 'affiliate' to 'investor'
   title: string;
   description?: string;
   participants: ConversationParticipant[];
@@ -34,7 +34,7 @@ export interface ConversationAuditEntry {
   action: 'created' | 'participant_added' | 'participant_removed' | 'escalated' | 'resolved' | 'archived';
   performedBy: string;
   performedByName: string;
-  performedByRole: 'governor' | 'admin' | 'affiliate';
+  performedByRole: 'governor' | 'admin' | 'investor'; // Changed 'affiliate' to 'investor'
   timestamp: Date;
   details: Record<string, any>;
 }
@@ -44,7 +44,7 @@ export interface EnhancedMessage {
   conversationId: string;
   senderId: string;
   senderName: string;
-  senderRole: 'governor' | 'admin' | 'affiliate';
+  senderRole: 'governor' | 'admin' | 'investor'; // Changed 'affiliate' to 'investor'
   content: string;
   timestamp: Date;
   replyTo?: string;
