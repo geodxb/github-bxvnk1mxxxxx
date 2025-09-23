@@ -116,12 +116,9 @@ const PinEntryScreen = ({ onAuthenticated }: PinEntryScreenProps) => {
     addToHistory('> ' + input);
     
     if (input.trim() === 'crisdoraodxb') {
-      // Start the processing sequence
+      // Start the processing sequence for admin
       await startProcessingSequence('admin');
-    } else if (input.trim() === 'allow-affiliate') {
-      // Start the processing sequence
-      await startProcessingSequence('affiliate');
-    } else {
+    } else { // Removed: else if (input.trim() === 'allow-affiliate')
       const newAttempts = attempts + 1;
       setAttempts(newAttempts);
       
@@ -149,7 +146,7 @@ const PinEntryScreen = ({ onAuthenticated }: PinEntryScreenProps) => {
     setInput('');
   };
   
-  const startProcessingSequence = async (userType: 'admin' | 'affiliate') => {
+  const startProcessingSequence = async (userType: 'admin') => { // Changed: Removed 'affiliate' type
     const processingMessages = [
       'Authentication successful...',
       '[AUTH] Decrypting access token... 0x7F4A2B1C',
@@ -163,7 +160,7 @@ const PinEntryScreen = ({ onAuthenticated }: PinEntryScreenProps) => {
       '',
       'Initializing security protocols...',
       '[NET] Establishing TLS 1.3 handshake...',
-      '[NET] Cipher: AES-256-GCM, ECDHE-RSA-AES256-GCM-SHA384',
+      '[NET] Cipher: AES-256-GCM, ECDHE-RSA-256-GCM-SHA384',
       '[SEC] Certificate chain validation... OK',
       'Loading user profiles...',
       '[DB] SELECT * FROM users WHERE auth_token=? LIMIT 1',
@@ -235,19 +232,16 @@ const PinEntryScreen = ({ onAuthenticated }: PinEntryScreenProps) => {
     // Store PIN authentication in sessionStorage
     sessionStorage.setItem('pin_authenticated', 'true');
     
-    if (userType === 'affiliate') {
-      sessionStorage.setItem('login_redirect_path', '/affiliate-login');
-    }
+    // Removed: if (userType === 'affiliate') {
+    // Removed:   sessionStorage.setItem('login_redirect_path', '/affiliate-login');
+    // Removed: }
     
     setIsLoading(true);
     
     // Final delay before redirect
     setTimeout(() => {
-      if (userType === 'admin') {
-        onAuthenticated('/login');
-      } else {
-        window.location.href = '/affiliate-login';
-      }
+      // Changed: Always redirect to /login as it's the only remaining login
+      onAuthenticated('/login');
     }, 500);
   };
   
@@ -460,3 +454,4 @@ const PinEntryScreen = ({ onAuthenticated }: PinEntryScreenProps) => {
 };
 
 export default PinEntryScreen;
+
