@@ -22,10 +22,10 @@ export class EnhancedMessageService {
   static async createConversation(
     initiatorId: string,
     initiatorName: string,
-    initiatorRole: 'governor' | 'admin' | 'affiliate',
+    initiatorRole: 'governor' | 'admin' | 'investor', // Changed 'affiliate' to 'investor'
     targetId: string,
     targetName: string,
-    targetRole: 'governor' | 'admin' | 'affiliate',
+    targetRole: 'governor' | 'admin' | 'investor', // Changed 'affiliate' to 'investor'
     department?: string,
     initialMessage?: string
   ): Promise<string> {
@@ -109,7 +109,7 @@ export class EnhancedMessageService {
     conversationId: string,
     senderId: string,
     senderName: string,
-    senderRole: 'governor' | 'admin' | 'affiliate',
+    senderRole: 'governor' | 'admin' | 'investor', // Changed 'affiliate' to 'investor'
     content: string,
     priority: 'low' | 'medium' | 'high' | 'urgent' = 'medium',
     department?: string,
@@ -170,7 +170,7 @@ export class EnhancedMessageService {
     conversationId: string,
     escalatedBy: string,
     escalatedByName: string,
-    escalatedByRole: 'admin' | 'affiliate',
+    escalatedByRole: 'admin' | 'investor', // Changed 'affiliate' to 'investor'
     reason: string,
     governorId?: string
   ): Promise<void> {
@@ -301,10 +301,10 @@ export class EnhancedMessageService {
   static async getOrCreateEnhancedConversation(
     userId: string,
     userName: string,
-    userRole: 'governor' | 'admin' | 'affiliate',
+    userRole: 'governor' | 'admin' | 'investor', // Changed 'affiliate' to 'investor'
     targetId?: string,
     targetName?: string,
-    targetRole?: 'governor' | 'admin' | 'affiliate',
+    targetRole?: 'governor' | 'admin' | 'investor', // Changed 'affiliate' to 'investor'
     department?: string
   ): Promise<string> {
     try {
@@ -368,10 +368,10 @@ export class EnhancedMessageService {
       // Auto-select target based on role
       let autoTargetId = '';
       let autoTargetName = '';
-      let autoTargetRole: 'governor' | 'admin' | 'affiliate' = 'admin';
+      let autoTargetRole: 'governor' | 'admin' | 'investor' = 'admin'; // Changed 'affiliate' to 'investor'
 
-      if (userRole === 'affiliate') {
-        // Affiliate -> Admin
+      if (userRole === 'investor') { // Changed 'affiliate' to 'investor'
+        // Investor -> Admin
         const adminQuery = query(
           collection(db, 'users'),
           where('role', '==', 'admin')
@@ -436,17 +436,17 @@ export class EnhancedMessageService {
     if (initiatorRole === 'governor' && targetRole === 'admin') {
       return `${departmentPrefix}Communication with Team`;
     }
-    if (initiatorRole === 'admin' && targetRole === 'affiliate') {
-      return `${departmentPrefix}Communication with Affiliate`;
+    if (initiatorRole === 'admin' && targetRole === 'investor') { // Changed 'affiliate' to 'investor'
+      return `${departmentPrefix}Communication with Investor`;
     }
-    if (initiatorRole === 'affiliate' && targetRole === 'admin') {
+    if (initiatorRole === 'investor' && targetRole === 'admin') { // Changed 'affiliate' to 'investor'
       return `${departmentPrefix}Communication with Admin`;
     }
-    if (initiatorRole === 'affiliate' && targetRole === 'governor') {
+    if (initiatorRole === 'investor' && targetRole === 'governor') { // Changed 'affiliate' to 'investor'
       return `${departmentPrefix}Communication with Management`;
     }
-    if (initiatorRole === 'governor' && targetRole === 'affiliate') {
-      return `${departmentPrefix}Communication with Affiliate`;
+    if (initiatorRole === 'governor' && targetRole === 'investor') { // Changed 'affiliate' to 'investor'
+      return `${departmentPrefix}Communication with Investor`;
     }
 
     return `${departmentPrefix}Communication`;
@@ -456,18 +456,18 @@ export class EnhancedMessageService {
   static getConversationType(
     initiatorRole: string,
     targetRole: string
-  ): 'admin_affiliate' | 'admin_governor' | 'affiliate_governor' | 'group' {
-    if ((initiatorRole === 'admin' && targetRole === 'affiliate') || 
-        (initiatorRole === 'affiliate' && targetRole === 'admin')) {
-      return 'admin_affiliate';
+  ): 'admin_investor' | 'admin_governor' | 'investor_governor' | 'group' { // Changed 'affiliate' to 'investor'
+    if ((initiatorRole === 'admin' && targetRole === 'investor') || // Changed 'affiliate' to 'investor'
+        (initiatorRole === 'investor' && targetRole === 'admin')) { // Changed 'affiliate' to 'investor'
+      return 'admin_investor';
     }
     if ((initiatorRole === 'admin' && targetRole === 'governor') || 
         (initiatorRole === 'governor' && targetRole === 'admin')) {
       return 'admin_governor';
     }
-    if ((initiatorRole === 'affiliate' && targetRole === 'governor') || 
-        (initiatorRole === 'governor' && targetRole === 'affiliate')) {
-      return 'affiliate_governor';
+    if ((initiatorRole === 'investor' && targetRole === 'governor') || // Changed 'affiliate' to 'investor'
+        (initiatorRole === 'governor' && targetRole === 'investor')) { // Changed 'affiliate' to 'investor'
+      return 'investor_governor';
     }
     return 'group';
   }
@@ -512,7 +512,7 @@ export class EnhancedMessageService {
     conversationId: string,
     senderId: string,
     senderName: string,
-    senderRole: 'governor' | 'admin' | 'affiliate',
+    senderRole: 'governor' | 'admin' | 'investor', // Changed 'affiliate' to 'investor'
     content: string,
     department?: string
   ): Promise<void> {
@@ -544,7 +544,7 @@ export class EnhancedMessageService {
               department: department || null
             },
             participant.role === 'governor' ? '/governor/messages' :
-            participant.role === 'admin' ? '/admin/messages' : '/investor'
+            participant.role === 'admin' ? '/admin/messages' : '/login' // Changed '/investor' to '/login'
           );
         }
       }
@@ -679,7 +679,7 @@ export class EnhancedMessageService {
           
           return {
             id: doc.id,
-            type: data.type || 'admin_affiliate',
+            type: data.type || 'admin_investor', // Changed 'admin_affiliate' to 'admin_investor'
             title: data.title || 'Conversation',
             description: data.description,
             participants: data.participants || [],
@@ -968,11 +968,11 @@ export class EnhancedMessageService {
   // Get all available recipients for a user
   static async getAvailableRecipients(
     userId: string,
-    userRole: 'governor' | 'admin' | 'affiliate'
+    userRole: 'governor' | 'admin' // Removed 'affiliate'
   ): Promise<Array<{
     id: string;
     name: string;
-    role: 'governor' | 'admin' | 'affiliate';
+    role: 'governor' | 'admin' | 'investor'; // Changed 'affiliate' to 'investor'
     email?: string;
     title?: string;
     country?: string;
@@ -1038,7 +1038,7 @@ export class EnhancedMessageService {
           recipients.push({
             id: doc.id,
             name: data.name,
-            role: 'affiliate',
+            role: 'investor', // Changed 'affiliate' to 'investor'
             email: data.email,
             country: data.country,
             accountStatus: data.accountStatus,
@@ -1046,34 +1046,10 @@ export class EnhancedMessageService {
           });
         });
       } else {
-        // Affiliate can message admin and governor
-        const adminQuery = query(collection(db, 'users'), where('role', '==', 'admin'));
-        const adminSnapshot = await getDocs(adminQuery);
-        
-        adminSnapshot.docs.forEach(doc => {
-          const data = doc.data();
-          recipients.push({
-            id: doc.id,
-            name: data.name,
-            role: 'admin',
-            email: data.email,
-            title: 'Admin Team'
-          });
-        });
-
-        const governorQuery = query(collection(db, 'users'), where('role', '==', 'governor'));
-        const governorSnapshot = await getDocs(governorQuery);
-        
-        governorSnapshot.docs.forEach(doc => {
-          const data = doc.data();
-          recipients.push({
-            id: doc.id,
-            name: data.name,
-            role: 'governor',
-            email: data.email,
-            title: 'Management Team'
-          });
-        });
+        // This block should ideally not be reached if only admin/governor can log in
+        // If it were, it would be for an investor to message admin/governor
+        // For now, we'll keep it empty or throw an error if an investor somehow logs in
+        throw new Error('Invalid user role for fetching recipients');
       }
 
       return recipients;
