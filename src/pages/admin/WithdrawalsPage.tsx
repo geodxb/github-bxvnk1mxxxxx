@@ -5,7 +5,6 @@ import Table from '../../components/common/Table';
 import Button from '../../components/common/Button';
 import Modal from '../../components/common/Modal';
 import WithdrawalRequestForm from '../../components/investor/WithdrawalRequestForm';
-import { useWithdrawalRequests, useInvestors } from '../../hooks/useFirestore';
 import { FirestoreService } from '../../services/firestoreService';
 import ProofOfFundsForm from '../../components/investor/ProofOfFundsForm';
 import WithdrawalFlagModal from '../../components/admin/WithdrawalFlagModal';
@@ -49,14 +48,8 @@ const WithdrawalsPage = () => {
   const [selectedProofWithdrawal, setSelectedProofWithdrawal] = useState<any>(null);
   const [showProofOfTransfer, setShowProofOfTransfer] = useState(false);
   const [selectedTransferProof, setSelectedTransferProof] = useState<any>(null);
-  const [showWithdrawalForm, setShowWithdrawalForm] = useState(false);
-  const [selectedInvestorForWithdrawal, setSelectedInvestorForWithdrawal] = useState<any>(null);
   const [showFlagModal, setShowFlagModal] = useState(false);
   const [selectedFlagWithdrawal, setSelectedFlagWithdrawal] = useState<any>(null);
-
-  // New state for investor selection modal
-  const [showSelectInvestorModal, setShowSelectInvestorModal] = useState(false);
-  const [selectedInvestorForProWithdrawal, setSelectedInvestorForProWithdrawal] = useState<any>(null);
 
   const filteredRequests = withdrawalRequests.filter(request => {
     const matchesStatus = filterStatus === 'all' || 
@@ -84,11 +77,6 @@ const WithdrawalsPage = () => {
   const openProgressModal = (request: any) => {
     setSelectedProgressRequest(request);
     setShowProgressModal(true);
-  };
-
-  const openWithdrawalForm = (investor: any) => {
-    setSelectedInvestorForWithdrawal(investor);
-    setShowWithdrawalForm(true);
   };
 
   const handleOpenProofOfFunds = (request: any) => {
@@ -383,19 +371,6 @@ const WithdrawalsPage = () => {
             <h2 className="text-2xl font-bold text-gray-900 uppercase tracking-wide">WITHDRAWAL MANAGEMENT</h2>
             <p className="text-gray-600 uppercase tracking-wide text-sm">Monitor withdrawals and submit flag requests for Governor review</p>
           </div>
-          <div className="flex space-x-3"> {/* Added a flex container for buttons */}
-            <Button
-              variant="primary"
-              onClick={() => {
-                // Open the investor selection modal
-                setShowSelectInvestorModal(true);
-              }}
-            >
-              <Plus size={18} className="mr-2" />
-              New Withdrawal Request
-            </Button>
-            {/* Removed the Test Pro Withdrawal button */}
-          </div>
         </div>
       </div>
       
@@ -669,66 +644,6 @@ const WithdrawalsPage = () => {
         )}
       </Modal>
 
-      {/* New Withdrawal Request Modal (Investor Selection) */}
-      <Modal
-        isOpen={showSelectInvestorModal}
-        onClose={() => {
-          setShowSelectInvestorModal(false);
-          setSelectedInvestorForProWithdrawal(null);
-        }}
-        title="SELECT INVESTOR FOR WITHDRAWAL"
-        size="lg"
-      >
-        <div className="space-y-4">
-          <h4 className="font-medium text-gray-800 mb-4">Choose an Investor</h4>
-          <div className="max-h-64 overflow-y-auto space-y-2">
-            {investors
-              .filter(inv => inv.currentBalance > 0 && !inv.accountStatus?.includes('Closed'))
-              .map(investor => (
-              <button
-                key={investor.id}
-                onClick={() => {
-                  setSelectedInvestorForProWithdrawal(investor);
-                  setShowSelectInvestorModal(false);
-                }}
-                className="w-full text-left p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                <div className="flex justify-between items-center">
-                  <div>
-                    <p className="font-medium text-gray-900">{investor.name}</p>
-                    <p className="text-sm text-gray-600">{investor.country}</p>
-                    <p className="text-xs text-gray-500">Account Type: {investor.accountType || 'Standard'}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-semibold text-gray-900">${investor.currentBalance.toLocaleString()}</p>
-                    <p className="text-xs text-gray-500">Available Balance</p>
-                  </div>
-                </div>
-              </button>
-            ))}
-          </div>
-        </div>
-      </Modal>
-
-      {/* Withdrawal Modal (for selected investor) - Conditional Rendering */}
-      {selectedInvestorForProWithdrawal && (
-        <Modal
-          isOpen={!!selectedInvestorForProWithdrawal}
-          onClose={() => setSelectedInvestorForProWithdrawal(null)}
-          title={`REQUEST WITHDRAWAL FOR ${selectedInvestorForProWithdrawal.name.toUpperCase()}`}
-          size="lg"
-        >
-          <WithdrawalRequestForm
-            investor={selectedInvestorForProWithdrawal}
-            currentBalance={selectedInvestorForProWithdrawal.currentBalance}
-            investorName={selectedInvestorForProWithdrawal.name}
-            onSuccess={() => {
-              setSelectedInvestorForProWithdrawal(null);
-              refetch(); // Refresh the withdrawal list on success
-            }}
-          />
-        </Modal>
-      )}
     </DashboardLayout>
   );
 };

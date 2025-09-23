@@ -182,6 +182,8 @@ export class NotificationService {
         },
         `/governor/support-tickets`
       );
+    } catch (error) {
+      console.error('❌ Error creating ticket notification:', error);
     }
 
   }
