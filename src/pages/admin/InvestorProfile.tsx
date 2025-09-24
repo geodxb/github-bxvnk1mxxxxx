@@ -467,20 +467,18 @@ const InvestorProfile = () => {
           {
             key: 'date',
             header: 'Date',
-            render: (value: string) => new Date(value).toLocaleDateString(),
+            render: (value: string) => (
+              <div className="space-y-1">
+                <p className="text-sm text-gray-900">{new Date(value).toLocaleDateString()}</p>
+                <p className="text-xs text-gray-500">{new Date(value).toLocaleDateString('en-US', { weekday: 'short' })}</p>
+              </div>
+            ),
           },
           {
             key: 'type',
             header: 'Type',
             render: (value: string) => (
-              <span className={`px-2 py-1 text-xs rounded-full font-medium ${
-                value === 'Deposit' ? 'bg-green-100 text-green-800' :
-                value === 'Withdrawal' ? 'bg-red-100 text-red-800' :
-                value === 'Earnings' ? 'bg-blue-100 text-blue-800' :
-                'bg-gray-100 text-gray-800'
-              }`}>
-                {value}
-              </span>
+              <span className="text-sm font-medium text-gray-900">{value}</span>
             ),
           },
           {
@@ -488,22 +486,19 @@ const InvestorProfile = () => {
             header: 'Amount',
             align: 'right' as 'right',
             render: (value: number, row: any) => (
-              <span className={`font-medium ${row.type === 'Withdrawal' ? 'text-red-600' : 'text-green-600'}`}>
-                {row.type === 'Withdrawal' ? '-' : '+'}${value.toLocaleString()}
-              </span>
+              <div className="text-right">
+                <p className="font-medium text-gray-900">
+                  {row.type === 'Withdrawal' ? '-' : '+'}${Math.abs(value).toLocaleString()}
+                </p>
+                <p className="text-xs text-gray-500">USD</p>
+              </div>
             ),
           },
           {
             key: 'status',
             header: 'Status',
             render: (value: string) => (
-              <span className={`px-2 py-1 text-xs rounded-full font-medium ${
-                value === 'Completed' ? 'bg-green-100 text-green-800' :
-                value === 'Pending' ? 'bg-yellow-100 text-yellow-800' :
-                'bg-red-100 text-red-800'
-              }`}>
-                {value}
-              </span>
+              <span className="text-sm font-medium text-gray-900">{value}</span>
             ),
           },
           {
