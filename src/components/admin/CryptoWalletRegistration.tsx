@@ -171,7 +171,7 @@ const CryptoWalletRegistration = ({ investor, onUpdate }: CryptoWalletRegistrati
       setTimeout(() => setIsSuccess(false), 2000);
     } catch (err: any) {
       console.error('Error saving crypto wallet:', err);
-      setError(`Failed to save crypto wallet: ${err.message}`);
+      setError(\`Failed to save crypto wallet: ${err.message}`);
     } finally {
       setIsLoading(false);
     }
@@ -206,7 +206,7 @@ const CryptoWalletRegistration = ({ investor, onUpdate }: CryptoWalletRegistrati
   };
 
   const handleRemoveWallet = async (walletId: string, walletAddress: string) => {
-    if (!user || !confirm(`Are you sure you want to request deletion of wallet ${walletAddress}? This requires Governor approval.`)) return;
+    if (!user || !confirm(\`Are you sure you want to request deletion of wallet ${walletAddress}? This requires Governor approval.`)) return;
     try {
       await FirestoreService.deleteCryptoWallet(investor.id, walletId, user.id, user.name);
       onUpdate();
@@ -246,7 +246,7 @@ const CryptoWalletRegistration = ({ investor, onUpdate }: CryptoWalletRegistrati
                           PRIMARY
                         </span>
                       )}
-                      <span className={`px-2 py-1 text-xs rounded-full font-medium uppercase tracking-wide ${
+                      <span className={\`px-2 py-1 text-xs rounded-full font-medium uppercase tracking-wide ${
                         wallet.verificationStatus === 'approved' ? 'bg-green-100 text-green-800' :
                         wallet.verificationStatus === 'pending' ? 'bg-yellow-100 text-yellow-800' :
                         'bg-red-100 text-red-800'
