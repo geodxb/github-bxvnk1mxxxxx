@@ -85,7 +85,7 @@ const CryptoWalletVerificationPanel = () => {
           selectedRequest.id,
           user.id,
           user.name,
-          reviewComment.trim() || undefined
+          reviewComment.trim() || null
         );
       } else {
         await GovernorService.rejectCryptoWalletVerification(
