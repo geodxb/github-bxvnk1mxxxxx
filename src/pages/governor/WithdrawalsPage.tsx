@@ -458,7 +458,7 @@ const GovernorWithdrawalsPage = () => {
                   <th className="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wide">REQUEST</th>
                   <th className="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wide">INVESTOR</th>
                   <th className="px-6 py-4 text-right text-sm font-bold text-gray-700 uppercase tracking-wide">AMOUNT</th>
-                  <th className="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wide">BANK INFO</th>
+                  <th className="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wide">DESTINATION</th>
                   <th className="px-6 py-4 text-center text-sm font-bold text-gray-700 uppercase tracking-wide">PRIORITY</th>
                   <th className="px-6 py-4 text-center text-sm font-bold text-gray-700 uppercase tracking-wide">STATUS</th>
                   <th className="px-6 py-4 text-center text-sm font-bold text-gray-700 uppercase tracking-wide">GOVERNOR CONTROLS</th>
