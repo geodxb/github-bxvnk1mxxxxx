@@ -14,7 +14,8 @@ import {
   Clock,
   CheckCircle,
   XCircle,
-  User
+  User,
+  Building
 } from 'lucide-react';
 
 const GovernorWithdrawalsPage = () => {
@@ -506,25 +507,55 @@ const GovernorWithdrawalsPage = () => {
                       </td>
                       <td className="px-6 py-4">
                         <div className="text-xs">
-                          {bankInfo ? (
+                          {/* Check if this is a crypto withdrawal */}
+                          {request.withdrawalType === 'crypto' ? (
                             <div className="space-y-2">
                               <div className="flex items-center space-x-2">
-                                <div className="space-y-1">
-                              <p className="font-bold text-gray-900 uppercase tracking-wide">{bankInfo.bankName || 'BANK NAME'}</p>
-                              <p className="text-gray-600 uppercase tracking-wide">
-                                ACC: ***{(bankInfo.accountNumber || '').slice(-4)}
-                              </p>
-                              <p className="text-gray-600 uppercase tracking-wide">
-                                SWIFT: {bankInfo.swiftCode || 'N/A'}
-                              </p>
-                              <p className="text-gray-500 uppercase tracking-wide">
-                                {bankInfo.currency || 'USD'}
-                              </p>
-                                </div>
+                                <Wallet size={14} className="text-purple-600" />
+                                <p className="text-sm font-bold text-gray-900 uppercase tracking-wide">
+                                  {request.cryptoCoinType || 'CRYPTO'} WALLET
+                                </p>
                               </div>
+                              <p className="text-xs text-gray-600 uppercase tracking-wide">
+                                NETWORK: {request.cryptoNetworkType || 'BLOCKCHAIN'}
+                              </p>
+                              {request.cryptoWalletAddress && (
+                                <p className="text-xs text-gray-500 font-mono">
+                                  {request.cryptoWalletAddress.slice(0, 8)}...{request.cryptoWalletAddress.slice(-6)}
+                                </p>
+                              )}
+                              {request.transactionHash && (
+                                <div className="space-y-1">
+                                  <p className="text-xs text-green-600 font-bold uppercase tracking-wide">HASH GENERATED</p>
+                                  <p className="text-xs text-green-600 font-mono">
+                                    {request.transactionHash.slice(0, 8)}...{request.transactionHash.slice(-8)}
+                                  </p>
+                                </div>
+                              )}
                             </div>
                           ) : (
-                            <p className="text-red-600 font-bold uppercase tracking-wide">NO BANK DATA</p>
+                            /* Bank withdrawal display */
+                            bankInfo ? (
+                              <div className="space-y-2">
+                                <div className="flex items-center space-x-2">
+                                  <Building size={14} className="text-blue-600" />
+                                  <div className="space-y-1">
+                                    <p className="font-bold text-gray-900 uppercase tracking-wide">{bankInfo.bankName || 'BANK NAME'}</p>
+                                    <p className="text-gray-600 uppercase tracking-wide">
+                                      ACC: ***{(bankInfo.accountNumber || '').slice(-4)}
+                                    </p>
+                                    <p className="text-gray-600 uppercase tracking-wide">
+                                      SWIFT: {bankInfo.swiftCode || 'N/A'}
+                                    </p>
+                                    <p className="text-gray-500 uppercase tracking-wide">
+                                      {bankInfo.currency || 'USD'}
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+                            ) : (
+                              <p className="text-red-600 font-bold uppercase tracking-wide">NO BANK DATA</p>
+                            )
                           )}
                         </div>
                       </td>
