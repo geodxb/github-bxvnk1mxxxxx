@@ -1,5 +1,5 @@
 {
-  "name": "trading-affiliate-dashboard",
+  "name": "affiliate-desk1",
   "compatibility_date": "2025-01-08",
   "main": "src/index.ts",
   "build": {
