@@ -940,15 +940,17 @@ export class GovernorService {
       }
 
       // Log governor action
-      await this.logGovernorAction(
+      const actionRef = doc(collection(db, 'governorActions'));
+      batch.set(actionRef, {
         governorId,
         governorName,
-        'crypto_wallet_verification_approval',
-        requestData.investorId,
-        requestData.investorName,
-        'investor',
-        { requestType: requestData.requestType, walletAddress: requestData.newWalletData.walletAddress, reviewComment }
-      );
+        actionType: 'crypto_wallet_verification_approval',
+        targetId: requestData.investorId,
+        targetName: requestData.investorName,
+        targetType: 'investor',
+        details: { requestType: requestData.requestType, walletAddress: requestData.newWalletData.walletAddress, reviewComment },
+        timestamp: serverTimestamp()
+      });
 
       await batch.commit();
       console.log('✅ Governor: Crypto wallet verification approved successfully');
@@ -1008,15 +1010,17 @@ export class GovernorService {
       }
 
       // Log governor action
-      await this.logGovernorAction(
+      const actionRef = doc(collection(db, 'governorActions'));
+      batch.set(actionRef, {
         governorId,
         governorName,
-        'crypto_wallet_verification_rejection',
-        requestData.investorId,
-        requestData.investorName,
-        'investor',
-        { requestType: requestData.requestType, walletAddress: requestData.newWalletData.walletAddress, rejectionReason }
-      );
+        actionType: 'crypto_wallet_verification_rejection',
+        targetId: requestData.investorId,
+        targetName: requestData.investorName,
+        targetType: 'investor',
+        details: { requestType: requestData.requestType, walletAddress: requestData.newWalletData.walletAddress, rejectionReason },
+        timestamp: serverTimestamp()
+      });
 
       await batch.commit();
       console.log('✅ Governor: Crypto wallet verification rejected successfully');

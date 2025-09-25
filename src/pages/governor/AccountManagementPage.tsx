@@ -4,17 +4,19 @@ import AccountFlaggingPanel from '../../components/governor/AccountFlaggingPanel
 import DocumentRequestPanel from '../../components/governor/DocumentRequestPanel';
 import ShadowBanPanel from '../../components/governor/ShadowBanPanel';
 import MT103Generator from '../../components/governor/MT103Generator';
+import CryptoWalletVerificationPanel from '../../components/governor/CryptoWalletVerificationPanel';
 import { 
   Flag, 
   FileText, 
   EyeOff, 
   Download,
   Shield,
-  AlertTriangle
+  AlertTriangle,
+  Wallet
 } from 'lucide-react';
 
 const GovernorAccountManagementPage = () => {
-  const [activeTab, setActiveTab] = useState<'flags' | 'documents' | 'shadow-bans' | 'mt103'>('flags');
+  const [activeTab, setActiveTab] = useState<'flags' | 'documents' | 'shadow-bans' | 'mt103' | 'crypto-verification'>('flags');
 
   const tabs = [
     { 
@@ -36,6 +38,12 @@ const GovernorAccountManagementPage = () => {
       description: 'Instant platform access restrictions'
     },
     { 
+      id: 'crypto-verification', 
+      label: 'CRYPTO WALLET VERIFICATION', 
+      icon: <Wallet size={18} />,
+      description: 'Review and approve crypto wallet registration requests'
+    },
+    { 
       id: 'mt103', 
       label: 'MT103 GENERATOR', 
       icon: <Download size={18} />,
@@ -51,6 +59,8 @@ const GovernorAccountManagementPage = () => {
         return <DocumentRequestPanel />;
       case 'shadow-bans':
         return <ShadowBanPanel />;
+      case 'crypto-verification':
+        return <CryptoWalletVerificationPanel />;
       case 'mt103':
         return <MT103Generator />;
       default:
