@@ -1,5 +1,20 @@
 export type UserRole = 'admin' | 'governor'; // Changed: Removed 'investor'
 
+export interface CryptoWallet {
+  id: string;
+  walletAddress: string;
+  networkType: 'Bitcoin' | 'Ethereum' | 'Polygon' | 'Solana' | string; // Extend as needed
+  coinType: 'BTC' | 'ETH' | 'USDT' | 'USDC' | string; // Extend as needed
+  qrCodeData?: string; // Base64 encoded image data of the QR code
+  isPrimary: boolean;
+  verificationStatus: 'pending' | 'approved' | 'rejected' | 'pending_deletion';
+  rejectionReason?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+
+
 export interface User {
   id: string;
   name: string;
@@ -50,6 +65,7 @@ export interface Investor {
     currency?: string;
   };
   bankAccounts?: Array<{
+    // Existing bank account fields
     id: string;
     bankName: string;
     accountHolderName: string;
@@ -63,6 +79,7 @@ export interface Investor {
     verificationStatus: 'pending' | 'approved' | 'rejected';
     rejectionReason?: string;
     createdAt: Date;
+    // End existing bank account fields
   }>;
   verification?: {
     idType?: string;
@@ -95,6 +112,18 @@ export interface WithdrawalRequest {
   processedBy?: string;
   processedAt?: Date | null;
   approvalDate?: Date | null;
+  
+  // New fields for crypto withdrawals
+  withdrawalType: 'bank' | 'crypto';
+  cryptoWalletId?: string; // ID of the selected crypto wallet
+  cryptoWalletAddress?: string;
+  cryptoNetworkType?: string;
+  cryptoCoinType?: string;
+  transactionHash?: string; // Blockchain transaction hash
+  hashGeneratedAt?: Date;
+  hashGeneratedBy?: string;
+  hashStatus?: 'pending_generation' | 'generated' | 'failed' | 'on_chain_confirmed';
+  // End new fields for crypto withdrawals
   reason?: string;
   w8benStatus?: 'not_required' | 'required' | 'submitted' | 'approved' | 'rejected';
   w8benSubmittedAt?: Date | null;

@@ -102,3 +102,22 @@ export interface MT103Document {
   generatedAt: Date;
   status: 'generated' | 'sent' | 'confirmed';
 }
+
+export interface CryptoWalletVerificationRequest {
+  id: string;
+  investorId: string;
+  investorName: string;
+  walletId?: string; // ID of the existing wallet if updating/deleting
+  newWalletData: CryptoWallet; // The full wallet object being added or updated
+  requestType: 'add' | 'update' | 'delete';
+  requestedBy: string;
+  requestedByName: string;
+  requestedAt: Date;
+  status: 'pending' | 'approved' | 'rejected';
+  reviewedBy?: string;
+  reviewedByName?: string;
+  reviewedAt?: Date;
+  rejectionReason?: string;
+}
+import { CryptoWallet } from './user';
+}
