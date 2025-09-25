@@ -190,7 +190,7 @@ const GovernorWithdrawalsPage = () => {
     const request = withdrawalRequests.find(req => req.id === requestId);
     const withdrawalType = request?.withdrawalType || 'bank';
     
-    if (!confirm(`APPROVE ${withdrawalType.toUpperCase()} WITHDRAWAL: ${investorName}?\n\nThis action will process the withdrawal immediately.${withdrawalType === 'crypto' ? '\n\nA blockchain transaction hash will be generated.' : ''}`)) {
+    if (!confirm(`APPROVE ${withdrawalType.toUpperCase()} WITHDRAWAL: ${investorName}?\n\n${withdrawalType === 'crypto' ? 'This will approve the withdrawal for blockchain processing.' : 'This action will process the withdrawal immediately.'}`)) {
       return;
     }
 
@@ -198,7 +198,7 @@ const GovernorWithdrawalsPage = () => {
     
     try {
       if (withdrawalType === 'crypto') {
-        // Use the crypto-specific approval method that generates hash
+        // Use the crypto-specific approval method (only approves, doesn't generate hash yet)
         await GovernorService.approveCryptoWithdrawal(
           requestId,
           user?.id || 'GOVERNOR',
@@ -216,6 +216,47 @@ const GovernorWithdrawalsPage = () => {
     }
   };
 
+  const handleSendToBlockchain = async (requestId: string, investorName: string) => {
+    if (!confirm(`SEND TO BLOCKCHAIN: ${investorName}?\n\nThis will generate a transaction hash and send the crypto withdrawal to the blockchain.`)) {
+      return;
+    }
+
+    setIsLoading(prev => ({ ...prev, [requestId]: true }));
+    
+    try {
+      await GovernorService.sendCryptoToBlockchain(
+        requestId,
+        user?.id || 'GOVERNOR',
+        user?.name || 'Governor'
+      );
+    } catch (error) {
+      console.error('Error sending to blockchain:', error);
+      alert('Failed to send to blockchain. Please try again.');
+    } finally {
+      setIsLoading(prev => ({ ...prev, [requestId]: false }));
+    }
+  };
+
+  const handleConfirmCredited = async (requestId: string, investorName: string) => {
+    if (!confirm(`CONFIRM TRANSFER COMPLETED: ${investorName}?\n\nThis will mark the crypto withdrawal as successfully credited.`)) {
+      return;
+    }
+
+    setIsLoading(prev => ({ ...prev, [requestId]: true }));
+    
+    try {
+      await GovernorService.confirmCryptoTransferCompleted(
+        requestId,
+        user?.id || 'GOVERNOR',
+        user?.name || 'Governor'
+      );
+    } catch (error) {
+      console.error('Error confirming transfer completion:', error);
+      alert('Failed to confirm transfer completion. Please try again.');
+    } finally {
+      setIsLoading(prev => ({ ...prev, [requestId]: false }));
+    }
+  };
   const handleReject = async (requestId: string, investorName: string) => {
     const reason = prompt(`REJECT WITHDRAWAL: ${investorName}\n\nEnter rejection reason:`);
     if (!reason) return;
@@ -607,6 +648,27 @@ const GovernorWithdrawalsPage = () => {
                                 REJECT
                               </button>
                             </>
+                          )}
+                          
+                          {/* Crypto-specific workflow buttons */}
+                          {request.withdrawalType === 'crypto' && request.status === 'Approved' && (
+                            <button
+                              onClick={() => handleSendToBlockchain(request.id, request.investorName)}
+                              disabled={isLoading[request.id]}
+                              className="px-2 py-1 bg-purple-600 text-white text-xs font-bold hover:bg-purple-700 transition-colors disabled:opacity-50 uppercase tracking-wide border border-purple-700"
+                            >
+                              SEND TO BLOCKCHAIN
+                            </button>
+                          )}
+                          
+                          {request.withdrawalType === 'crypto' && request.status === 'Sent' && (
+                            <button
+                              onClick={() => handleConfirmCredited(request.id, request.investorName)}
+                              disabled={isLoading[request.id]}
+                              className="px-2 py-1 bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 transition-colors disabled:opacity-50 uppercase tracking-wide border border-blue-700"
+                            >
+                              CONFIRM CREDITED
+                            </button>
                           )}
                           
                           {/* Status Change Button - Available for ALL statuses */}

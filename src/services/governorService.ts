@@ -565,6 +565,77 @@ export class GovernorService {
     }
   }
 
+  // Crypto withdrawal specific methods
+  static async sendCryptoToBlockchain(
+    withdrawalId: string,
+    governorId: string,
+    governorName: string
+  ): Promise<void> {
+    try {
+      console.log(`🔥 Governor: Sending crypto withdrawal ${withdrawalId} to blockchain`);
+      
+      // Generate transaction hash and update status to 'Sent'
+      await FirestoreService.generateCryptoTransactionHash(withdrawalId);
+      
+      // Update withdrawal status to 'Sent'
+      await updateDoc(doc(db, 'withdrawalRequests', withdrawalId), {
+        status: 'Sent',
+        sentToBlockchainAt: serverTimestamp(),
+        sentToBlockchainBy: governorName,
+        updatedAt: serverTimestamp()
+      });
+      
+      // Log governor action
+      await this.logGovernorAction(
+        governorId,
+        governorName,
+        'crypto_sent_to_blockchain',
+        withdrawalId,
+        'Crypto Withdrawal',
+        'withdrawal_request',
+        { action: 'sent_to_blockchain' }
+      );
+      
+      console.log('✅ Governor: Crypto withdrawal sent to blockchain successfully');
+    } catch (error) {
+      console.error('❌ Governor Error: Failed to send crypto to blockchain:', error);
+      throw error;
+    }
+  }
+
+  static async confirmCryptoTransferCompleted(
+    withdrawalId: string,
+    governorId: string,
+    governorName: string
+  ): Promise<void> {
+    try {
+      console.log(`🔥 Governor: Confirming crypto transfer completion for ${withdrawalId}`);
+      
+      // Update withdrawal status to 'Credited'
+      await updateDoc(doc(db, 'withdrawalRequests', withdrawalId), {
+        status: 'Credited',
+        creditedAt: serverTimestamp(),
+        creditedBy: governorName,
+        updatedAt: serverTimestamp()
+      });
+      
+      // Log governor action
+      await this.logGovernorAction(
+        governorId,
+        governorName,
+        'crypto_transfer_confirmed',
+        withdrawalId,
+        'Crypto Withdrawal',
+        'withdrawal_request',
+        { action: 'transfer_confirmed' }
+      );
+      
+      console.log('✅ Governor: Crypto transfer completion confirmed successfully');
+    } catch (error) {
+      console.error('❌ Governor Error: Failed to confirm crypto transfer completion:', error);
+      throw error;
+    }
+  }
   // MT103 Document Generation
   static async generateMT103(
     withdrawalId: string,
@@ -1049,8 +1120,6 @@ export class GovernorService {
         updatedAt: serverTimestamp()
       });
 
-      // Trigger hash generation after approval
-      await FirestoreService.generateCryptoTransactionHash(withdrawalId);
 
       // Log governor action
       await this.logGovernorAction(
@@ -1063,7 +1132,7 @@ export class GovernorService {
         { reviewComment }
       );
 
-      console.log('✅ Governor: Crypto withdrawal approved and hash generation triggered successfully');
+      console.log('✅ Governor: Crypto withdrawal approved successfully');
     } catch (error) {
       console.error('❌ Governor Error: Failed to approve crypto withdrawal:', error);
       throw error;
