@@ -133,7 +133,8 @@ service cloud.firestore {
       allow read, write: if isGovernor() || isAdmin();
       
       // Investor: Can create their own requests and read their own requests
-      allow create: if isInvestor() && isOwner(request.resource.data.investorId);
+      allow create: if isInvestor() && isOwner(request.resource.data.investorId) &&
+                       request.resource.data.withdrawalType in ['bank', 'crypto']; // Validate withdrawalType
       allow read: if isInvestor() && isOwner(resource.data.investorId);
       // Investor can update their own pending requests (e.g., to cancel)
       allow update: if isInvestor() && 
@@ -531,6 +532,18 @@ service cloud.firestore {
     // Account Flags and Restrictions - Admin/Governor only
     match /accountFlags/{flagId} {
       allow read, write: if isGovernor() || isAdmin();
+      allow read: if isInvestor() && isOwner(resource.data.investorId);
+    }
+
+    // Crypto Wallet Verification Requests - NEW
+    match /cryptoWalletVerificationRequests/{requestId} {
+      // Governor: Full access
+      allow read, write: if isGovernor();
+      // Admin: Create and read
+      allow create: if isAdmin();
+      allow read: if isAdmin();
+      // Investor: Create and read their own requests
+      allow create: if isInvestor() && isOwner(request.resource.data.investorId);
       allow read: if isInvestor() && isOwner(resource.data.investorId);
     }
     
