@@ -1056,7 +1056,7 @@ export class GovernorService {
       await this.logGovernorAction(
         governorId,
         governorName,
-        'crypto_withdrawal_approval',
+        'withdrawal_override',
         withdrawalId,
         'Crypto Withdrawal Request',
         'withdrawal_request',

@@ -184,14 +184,28 @@ const GovernorWithdrawalsPage = () => {
   };
 
   const handleApprove = async (requestId: string, investorName: string) => {
-    if (!confirm(`APPROVE WITHDRAWAL: ${investorName}?\n\nThis action will process the withdrawal immediately.`)) {
+    const request = withdrawalRequests.find(req => req.id === requestId);
+    const withdrawalType = request?.withdrawalType || 'bank';
+    
+    if (!confirm(`APPROVE ${withdrawalType.toUpperCase()} WITHDRAWAL: ${investorName}?\n\nThis action will process the withdrawal immediately.${withdrawalType === 'crypto' ? '\n\nA blockchain transaction hash will be generated.' : ''}`)) {
       return;
     }
 
     setIsLoading(prev => ({ ...prev, [requestId]: true }));
     
     try {
-      await FirestoreService.updateWithdrawalRequest(requestId, 'Approved', user?.id || 'GOVERNOR', 'Approved by Governor');
+      if (withdrawalType === 'crypto') {
+        // Use the crypto-specific approval method that generates hash
+        await GovernorService.approveCryptoWithdrawal(
+          requestId,
+          user?.id || 'GOVERNOR',
+          user?.name || 'Governor',
+          'Approved by Governor'
+        );
+      } else {
+        // Use regular approval for bank withdrawals
+        await FirestoreService.updateWithdrawalRequest(requestId, 'Approved', user?.id || 'GOVERNOR', 'Approved by Governor');
+      }
     } catch (error) {
       console.error('Error approving withdrawal:', error);
     } finally {
