@@ -1083,7 +1083,9 @@ const WithdrawalProgressBar = ({
                               withdrawalRequest.hashGeneratedAt.toDate() : 
                               withdrawalRequest.hashGeneratedAt
                             ).toLocaleDateString()}
-                      {currentStatus === 'Sent' ? 'BLOCKCHAIN TRANSACTION HASH GENERATED' : 'BLOCKCHAIN TRANSACTION COMPLETED'}
+                      </p>
+                      <p className="text-green-900 text-sm font-bold uppercase tracking-wide">
+                        {currentStatus === 'Sent' ? 'BLOCKCHAIN TRANSACTION HASH GENERATED' : 'BLOCKCHAIN TRANSACTION COMPLETED'}
                       </p>
                       <p className="font-mono text-green-900 text-xs break-all bg-white p-2 rounded border border-green-300">
                         {withdrawalRequest.transactionHash}
