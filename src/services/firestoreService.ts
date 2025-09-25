@@ -13,10 +13,11 @@ import {
   limit,
   serverTimestamp,
   onSnapshot,
-  writeBatch
+  writeBatch,
+  arrayUnion
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { Investor, Transaction, WithdrawalRequest, Commission, AuditLog, SystemSettings, UserRole } from '../types/user';
+import { Investor, Transaction, WithdrawalRequest, Commission, AuditLog, SystemSettings, UserRole, CryptoWallet } from '../types/user';
 import { NotificationService } from './notificationService';
 
 export class FirestoreService {
@@ -294,6 +295,269 @@ export class FirestoreService {
     );
 
     return unsubscribe;
+  }
+
+  // Crypto Wallet Management
+  static async addCryptoWallet(
+    investorId: string,
+    walletData: Omit<CryptoWallet, 'id' | 'isPrimary' | 'verificationStatus' | 'createdAt' | 'updatedAt'>,
+    requestedBy: string,
+    requestedByName: string
+  ): Promise<string> {
+    try {
+      console.log(`🔥 Firebase: Adding crypto wallet for investor ${investorId}`);
+      const investorRef = doc(db, 'users', investorId);
+      const investorDoc = await getDoc(investorRef);
+
+      if (!investorDoc.exists()) {
+        throw new Error('Investor not found');
+      }
+
+      const currentInvestor = investorDoc.data() as Investor;
+      const newWalletId = doc(collection(db, 'temp')).id; // Generate a unique ID
+      const newWallet: CryptoWallet = {
+        id: newWalletId,
+        ...walletData,
+        isPrimary: !(currentInvestor.cryptoWallets && currentInvestor.cryptoWallets.length > 0), // First wallet is primary
+        verificationStatus: 'pending',
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+
+      // Add to investor's cryptoWallets array
+      await updateDoc(investorRef, {
+        cryptoWallets: arrayUnion(newWallet),
+        updatedAt: serverTimestamp()
+      });
+
+      // Create a verification request for Governor approval
+      await FirestoreService.addDocument('cryptoWalletVerificationRequests', {
+        investorId,
+        investorName: currentInvestor.name,
+        requestType: 'add',
+        newWalletData: newWallet,
+        requestedBy,
+        requestedByName,
+        requestedAt: serverTimestamp(),
+        status: 'pending'
+      });
+
+      console.log('✅ Firebase: Crypto wallet added and verification request created successfully');
+      return newWalletId;
+    } catch (error) {
+      console.error('❌ Firebase Error: Failed to add crypto wallet:', error);
+      throw new Error(`Failed to add crypto wallet: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  static async updateCryptoWallet(
+    investorId: string,
+    walletId: string,
+    updatedWalletData: Partial<Omit<CryptoWallet, 'id' | 'createdAt' | 'updatedAt'>>,
+    requestedBy: string,
+    requestedByName: string
+  ): Promise<void> {
+    try {
+      console.log(`🔥 Firebase: Updating crypto wallet ${walletId} for investor ${investorId}`);
+      const investorRef = doc(db, 'users', investorId);
+      const investorDoc = await getDoc(investorRef);
+
+      if (!investorDoc.exists()) {
+        throw new Error('Investor not found');
+      }
+
+      const currentInvestor = investorDoc.data() as Investor;
+      const walletToUpdate = currentInvestor.cryptoWallets?.find(w => w.id === walletId);
+
+      if (!walletToUpdate) {
+        throw new Error('Crypto wallet not found');
+      }
+
+      const updatedWallet: CryptoWallet = {
+        ...walletToUpdate,
+        ...updatedWalletData,
+        verificationStatus: 'pending', // Mark as pending verification for changes
+        updatedAt: new Date()
+      };
+
+      // Update the wallet in the investor's array
+      const updatedWallets = currentInvestor.cryptoWallets?.map(w =>
+        w.id === walletId ? updatedWallet : w
+      ) || [updatedWallet];
+
+      await updateDoc(investorRef, {
+        cryptoWallets: updatedWallets,
+        updatedAt: serverTimestamp()
+      });
+
+      // Create a verification request for Governor approval
+      await FirestoreService.addDocument('cryptoWalletVerificationRequests', {
+        investorId,
+        investorName: currentInvestor.name,
+        requestType: 'update',
+        walletId,
+        newWalletData: updatedWallet,
+        requestedBy,
+        requestedByName,
+        requestedAt: serverTimestamp(),
+        status: 'pending'
+      });
+
+      console.log('✅ Firebase: Crypto wallet updated and verification request created successfully');
+    } catch (error) {
+      console.error('❌ Firebase Error: Failed to update crypto wallet:', error);
+      throw new Error(`Failed to update crypto wallet: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  static async deleteCryptoWallet(
+    investorId: string,
+    walletId: string,
+    requestedBy: string,
+    requestedByName: string
+  ): Promise<void> {
+    try {
+      console.log(`🔥 Firebase: Deleting crypto wallet ${walletId} for investor ${investorId}`);
+      const investorRef = doc(db, 'users', investorId);
+      const investorDoc = await getDoc(investorRef);
+
+      if (!investorDoc.exists()) {
+        throw new Error('Investor not found');
+      }
+
+      const currentInvestor = investorDoc.data() as Investor;
+      const walletToDelete = currentInvestor.cryptoWallets?.find(w => w.id === walletId);
+
+      if (!walletToDelete) {
+        throw new Error('Crypto wallet not found');
+      }
+
+      // Create a verification request for Governor approval to delete
+      await FirestoreService.addDocument('cryptoWalletVerificationRequests', {
+        investorId,
+        investorName: currentInvestor.name,
+        requestType: 'delete',
+        walletId,
+        newWalletData: walletToDelete, // Include the wallet data for context
+        requestedBy,
+        requestedByName,
+        requestedAt: serverTimestamp(),
+        status: 'pending'
+      });
+
+      // The actual deletion from the investor's profile will happen after Governor approval
+      console.log('✅ Firebase: Crypto wallet marked for deletion and verification request created successfully');
+    } catch (error) {
+      console.error('❌ Firebase Error: Failed to delete crypto wallet:', error);
+      throw new Error(`Failed to delete crypto wallet: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  static async getInvestorCryptoWallets(investorId: string): Promise<CryptoWallet[]> {
+    try {
+      console.log(`🔥 Firebase: Fetching crypto wallets for investor ${investorId}`);
+      const investorDoc = await getDoc(doc(db, 'users', investorId));
+      if (investorDoc.exists()) {
+        const investorData = investorDoc.data() as Investor;
+        return investorData.cryptoWallets || [];
+      }
+      return [];
+    } catch (error) {
+      console.error('❌ Firebase Error: Failed to fetch investor crypto wallets:', error);
+      throw new Error(`Failed to fetch investor crypto wallets: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  static async addCryptoWithdrawalRequest(
+    investorId: string,
+    investorName: string,
+    amount: number,
+    cryptoWallet: CryptoWallet, // Pass the full crypto wallet object
+    withdrawalId?: string
+  ): Promise<string> {
+    try {
+      console.log(`🔥 Firebase: Adding crypto withdrawal request for ${investorName}: $${amount.toLocaleString()} to ${cryptoWallet.coinType} wallet`);
+
+      const requestData = {
+        investorId,
+        investorName,
+        amount,
+        date: new Date().toISOString().split('T')[0],
+        status: 'Pending', // Always pending for Governor approval
+        processedBy: null,
+        processedAt: null,
+        approvalDate: null,
+        reason: null,
+        withdrawalType: 'crypto', // Mark as crypto withdrawal
+        cryptoWalletId: cryptoWallet.id,
+        cryptoWalletAddress: cryptoWallet.walletAddress,
+        cryptoNetworkType: cryptoWallet.networkType,
+        cryptoCoinType: cryptoWallet.coinType,
+        transactionHash: null,
+        hashGeneratedAt: null,
+        hashGeneratedBy: null,
+        hashStatus: 'pending_generation',
+        createdAt: serverTimestamp()
+      };
+
+      let docRef;
+      if (withdrawalId) {
+        docRef = doc(db, 'withdrawalRequests', withdrawalId);
+        await setDoc(docRef, requestData);
+      } else {
+        docRef = await addDoc(collection(db, 'withdrawalRequests'), requestData);
+      }
+
+      // Notify admins/governors about the new crypto withdrawal request
+      const adminQuery = query(collection(db, 'users'), where('role', 'in', ['admin', 'governor']));
+      const adminSnapshot = await getDocs(adminQuery);
+      for (const adminDoc of adminSnapshot.docs) {
+        await NotificationService.createWithdrawalStageNotification(
+          withdrawalId || docRef.id,
+          investorId,
+          investorName,
+          amount,
+          'submitted',
+          adminDoc.id
+        );
+      }
+
+      console.log('✅ Firebase: Crypto withdrawal request added successfully');
+      return withdrawalId || docRef.id;
+    } catch (error) {
+      console.error('❌ Firebase Error: Failed to add crypto withdrawal request:', error);
+      throw new Error(`Failed to add crypto withdrawal request: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  static async generateCryptoTransactionHash(withdrawalId: string): Promise<string> {
+    try {
+      console.log(`🔥 Firebase: Generating crypto transaction hash for withdrawal ${withdrawalId}`);
+      const withdrawalRef = doc(db, 'withdrawalRequests', withdrawalId);
+      const withdrawalDoc = await getDoc(withdrawalRef);
+
+      if (!withdrawalDoc.exists()) {
+        throw new Error('Withdrawal request not found');
+      }
+
+      // Simulate hash generation
+      const transactionHash = `0x${Array.from({ length: 64 }, () => Math.floor(Math.random() * 16).toString(16)).join('')}`;
+
+      await updateDoc(withdrawalRef, {
+        transactionHash,
+        hashGeneratedAt: serverTimestamp(),
+        hashGeneratedBy: 'SYSTEM_AUTOMATED', // Or the Governor who approved
+        hashStatus: 'generated',
+        status: 'Credited', // Mark as credited after hash generation
+        updatedAt: serverTimestamp()
+      });
+
+      console.log(`✅ Firebase: Crypto transaction hash generated for ${withdrawalId}: ${transactionHash}`);
+      return transactionHash;
+    } catch (error) {
+      console.error('❌ Firebase Error: Failed to generate crypto transaction hash:', error);
+      throw new Error(`Failed to generate crypto transaction hash: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   }
 
   // Add transaction
