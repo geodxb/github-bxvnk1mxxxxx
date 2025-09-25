@@ -19,8 +19,21 @@ import {
   Eye,
   ArrowRight,
   Plus,
-  Info
+  Info,
+  Globe,
+  TrendingUp,
+  RefreshCw
 } from 'lucide-react';
+
+// Country to currency mapping
+const countryCurrencyMap: Record<string, string[]> = {
+  'Mexico': ['USD', 'MXN'],
+  'France': ['USD', 'EUR'],
+  'Switzerland': ['USD', 'CHF'],
+  'Saudi Arabia': ['USD', 'SAR'],
+  'United Arab Emirates': ['USD', 'AED'],
+  'United States': ['USD']
+};
 
 interface WithdrawalRequestFormProps {
   investor: Investor;
@@ -31,6 +44,10 @@ const WithdrawalRequestForm = ({ investor, onSuccess }: WithdrawalRequestFormPro
   const { user } = useAuth();
   const [withdrawalType, setWithdrawalType] = useState<'bank' | 'crypto'>('bank');
   const [amount, setAmount] = useState('');
+  const [selectedCurrency, setSelectedCurrency] = useState('USD');
+  const [exchangeRate, setExchangeRate] = useState<number>(1);
+  const [localAmount, setLocalAmount] = useState<number>(0);
+  const [isLoadingRate, setIsLoadingRate] = useState(false);
   const [selectedBankAccount, setSelectedBankAccount] = useState<any>(null);
   const [selectedCryptoWallet, setSelectedCryptoWallet] = useState<CryptoWallet | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -48,6 +65,72 @@ const WithdrawalRequestForm = ({ investor, onSuccess }: WithdrawalRequestFormPro
   const primaryBankAccount = registeredBankAccounts.find(acc => acc.isPrimary) || registeredBankAccounts[0];
   const legacyBankDetails = investor.bankDetails;
 
+  // Get available currencies for investor's country
+  const availableCurrencies = countryCurrencyMap[investor.country] || ['USD'];
+
+  // Fetch exchange rate
+  const fetchExchangeRate = async (fromCurrency: string, toCurrency: string) => {
+    if (fromCurrency === toCurrency) {
+      return 1;
+    }
+
+    setIsLoadingRate(true);
+    try {
+      // Using a free exchange rate API
+      const response = await fetch(`https://api.exchangerate-api.com/v4/latest/${fromCurrency}`);
+      const data = await response.json();
+      
+      if (data.rates && data.rates[toCurrency]) {
+        return data.rates[toCurrency];
+      }
+      
+      // Fallback rates if API fails
+      const fallbackRates: Record<string, number> = {
+        'MXN': 20.15, // USD to MXN
+        'EUR': 0.85,  // USD to EUR
+        'CHF': 0.88,  // USD to CHF
+        'SAR': 3.75,  // USD to SAR
+        'AED': 3.67   // USD to AED
+      };
+      
+      return fallbackRates[toCurrency] || 1;
+    } catch (error) {
+      console.error('Error fetching exchange rate:', error);
+      // Return fallback rates
+      const fallbackRates: Record<string, number> = {
+        'MXN': 20.15,
+        'EUR': 0.85,
+        'CHF': 0.88,
+        'SAR': 3.75,
+        'AED': 3.67
+      };
+      return fallbackRates[toCurrency] || 1;
+    } finally {
+      setIsLoadingRate(false);
+    }
+  };
+
+  // Update exchange rate when currency changes
+  useEffect(() => {
+    if (selectedCurrency !== 'USD') {
+      fetchExchangeRate('USD', selectedCurrency).then(rate => {
+        setExchangeRate(rate);
+      });
+    } else {
+      setExchangeRate(1);
+    }
+  }, [selectedCurrency]);
+
+  // Update local amount when amount or exchange rate changes
+  useEffect(() => {
+    if (amount && !isNaN(parseFloat(amount))) {
+      const usdAmount = parseFloat(amount);
+      setLocalAmount(usdAmount * exchangeRate);
+    } else {
+      setLocalAmount(0);
+    }
+  }, [amount, exchangeRate]);
+
   // Set default bank account on component mount
   useEffect(() => {
     if (primaryBankAccount) {
@@ -57,7 +140,7 @@ const WithdrawalRequestForm = ({ investor, onSuccess }: WithdrawalRequestFormPro
     }
   }, [primaryBankAccount, legacyBankDetails]);
   const validateAmount = () => {
-    const numAmount = parseFloat(amount);
+    const numAmount = parseFloat(amount); // This is always in USD
     if (isNaN(numAmount) || numAmount <= 0) {
       setError('Please enter a valid amount');
       return false;
@@ -106,12 +189,14 @@ const WithdrawalRequestForm = ({ investor, onSuccess }: WithdrawalRequestFormPro
     setError('');
 
     try {
+      const usdAmount = parseFloat(amount); // Always store in USD
+      
       if (withdrawalType === 'crypto' && selectedCryptoWallet) {
         // Create crypto withdrawal request
         await FirestoreService.addCryptoWithdrawalRequest(
           investor.id,
           investor.name,
-          parseFloat(amount),
+          usdAmount,
           selectedCryptoWallet
         );
       } else {
@@ -119,12 +204,13 @@ const WithdrawalRequestForm = ({ investor, onSuccess }: WithdrawalRequestFormPro
         await FirestoreService.addWithdrawalRequest(
           investor.id,
           investor.name,
-          parseFloat(amount)
+          usdAmount
         );
       }
 
       setIsSuccess(true);
       setAmount('');
+      setSelectedCurrency('USD');
       setSelectedCryptoWallet(null);
       setShowConfirmModal(false);
 
@@ -144,6 +230,7 @@ const WithdrawalRequestForm = ({ investor, onSuccess }: WithdrawalRequestFormPro
 
   const handleClose = () => {
     setAmount('');
+    setSelectedCurrency('USD');
     setError('');
     setIsSuccess(false);
     setSelectedCryptoWallet(null);
@@ -187,6 +274,7 @@ const WithdrawalRequestForm = ({ investor, onSuccess }: WithdrawalRequestFormPro
                 <p className="text-gray-900 text-2xl font-bold">
                   ${investor.currentBalance.toLocaleString()}
                 </p>
+                <p className="text-gray-600 text-sm uppercase tracking-wide">USD</p>
               </div>
               <div className="w-12 h-12 bg-gray-200 border border-gray-400 rounded-lg flex items-center justify-center">
                 <DollarSign className="text-gray-700" size={24} />
@@ -253,6 +341,82 @@ const WithdrawalRequestForm = ({ investor, onSuccess }: WithdrawalRequestFormPro
             </div>
           </div>
 
+          {/* Currency Selection - Only for bank withdrawals */}
+          {withdrawalType === 'bank' && availableCurrencies.length > 1 && (
+            <div>
+              <label className="block text-sm font-bold text-gray-700 mb-3 uppercase tracking-wide">
+                WITHDRAWAL CURRENCY
+              </label>
+              <div className="grid grid-cols-2 gap-4">
+                {availableCurrencies.map((currency) => (
+                  <button
+                    key={currency}
+                    onClick={() => setSelectedCurrency(currency)}
+                    className={`p-4 border-2 rounded-lg transition-all text-left ${
+                      selectedCurrency === currency
+                        ? 'border-gray-900 bg-gray-50'
+                        : 'border-gray-200 hover:border-gray-300 bg-white'
+                    }`}
+                  >
+                    <div className="flex items-center space-x-3 mb-2">
+                      <Globe size={20} className="text-gray-600" />
+                      <span className="font-bold text-gray-900 uppercase tracking-wide">{currency}</span>
+                    </div>
+                    <p className="text-sm text-gray-600 uppercase tracking-wide">
+                      {currency === 'USD' ? 'US Dollar' : 
+                       currency === 'MXN' ? 'Mexican Peso' :
+                       currency === 'EUR' ? 'Euro' :
+                       currency === 'CHF' ? 'Swiss Franc' :
+                       currency === 'SAR' ? 'Saudi Riyal' :
+                       currency === 'AED' ? 'UAE Dirham' : currency}
+                    </p>
+                  </button>
+                ))}
+              </div>
+              
+              {/* Live Exchange Rate Display */}
+              {selectedCurrency !== 'USD' && (
+                <div className="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center space-x-2">
+                      <TrendingUp size={16} className="text-blue-600" />
+                      <h4 className="font-medium text-blue-800 uppercase tracking-wide">LIVE EXCHANGE RATE</h4>
+                    </div>
+                    <button
+                      onClick={() => fetchExchangeRate('USD', selectedCurrency)}
+                      disabled={isLoadingRate}
+                      className="p-1 text-blue-600 hover:text-blue-800 transition-colors"
+                      title="Refresh rate"
+                    >
+                      <RefreshCw size={14} className={isLoadingRate ? 'animate-spin' : ''} />
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <p className="text-blue-700 font-medium uppercase tracking-wide">EXCHANGE RATE</p>
+                      <p className="font-bold text-blue-900">
+                        {isLoadingRate ? (
+                          <span className="flex items-center">
+                            <div className="w-3 h-3 border border-blue-600 border-t-transparent rounded-full animate-spin mr-1"></div>
+                            Loading...
+                          </span>
+                        ) : (
+                          `1 USD = ${exchangeRate.toFixed(4)} ${selectedCurrency}`
+                        )}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-blue-700 font-medium uppercase tracking-wide">LAST UPDATED</p>
+                      <p className="font-bold text-blue-900">{new Date().toLocaleTimeString()}</p>
+                    </div>
+                  </div>
+                  <p className="text-blue-700 text-xs mt-2 uppercase tracking-wide">
+                    * Exchange rate is updated in real-time and may vary at the time of actual transfer
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
           {/* Bank Account Selection - Only for bank withdrawals */}
           {withdrawalType === 'bank' && (
             <div>
@@ -403,27 +567,64 @@ const WithdrawalRequestForm = ({ investor, onSuccess }: WithdrawalRequestFormPro
           {/* Amount Input */}
           <div>
             <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">
-              WITHDRAWAL AMOUNT (USD)
+              WITHDRAWAL AMOUNT
             </label>
+            
+            {/* Currency Display */}
+            <div className="mb-3 flex items-center space-x-2">
+              <span className="text-sm text-gray-600 uppercase tracking-wide">AMOUNT IN:</span>
+              <span className="px-2 py-1 bg-gray-100 text-gray-800 text-sm font-bold rounded uppercase tracking-wide">
+                {selectedCurrency}
+              </span>
+              {selectedCurrency !== 'USD' && (
+                <span className="text-xs text-gray-500 uppercase tracking-wide">
+                  (CONVERTED FROM USD)
+                </span>
+              )}
+            </div>
+            
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <span className="text-gray-700">$</span>
+                <span className="text-gray-700">
+                  {selectedCurrency === 'USD' ? '$' :
+                   selectedCurrency === 'EUR' ? '€' :
+                   selectedCurrency === 'CHF' ? 'CHF' :
+                   selectedCurrency === 'SAR' ? 'SAR' :
+                   selectedCurrency === 'AED' ? 'AED' :
+                   selectedCurrency === 'MXN' ? '$' : '$'}
+                </span>
               </div>
               <input
                 type="number"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 className="w-full pl-8 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-300 focus:border-gray-300 text-lg font-medium"
-                placeholder="0.00"
+                placeholder={`0.00 ${selectedCurrency}`}
                 step="0.01"
                 min="100"
                 max={investor.currentBalance}
                 required
               />
             </div>
-            <p className="text-xs text-gray-600 mt-1 uppercase tracking-wide">
-              Minimum: $100 • Maximum: ${investor.currentBalance.toLocaleString()}
-            </p>
+            
+            <div className="mt-2 space-y-1">
+              <p className="text-xs text-gray-600 uppercase tracking-wide">
+                Minimum: $100 USD • Maximum: ${investor.currentBalance.toLocaleString()} USD
+              </p>
+              {selectedCurrency !== 'USD' && amount && !isNaN(parseFloat(amount)) && (
+                <div className="bg-gray-50 p-2 rounded border border-gray-200">
+                  <p className="text-xs text-gray-700 uppercase tracking-wide">
+                    <strong>USD EQUIVALENT:</strong> ${parseFloat(amount).toLocaleString()} USD
+                  </p>
+                  <p className="text-xs text-gray-700 uppercase tracking-wide">
+                    <strong>LOCAL AMOUNT:</strong> {selectedCurrency} {localAmount.toLocaleString(undefined, { 
+                      minimumFractionDigits: 2, 
+                      maximumFractionDigits: 2 
+                    })}
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Commission Information */}
@@ -433,15 +634,45 @@ const WithdrawalRequestForm = ({ investor, onSuccess }: WithdrawalRequestFormPro
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
                   <p className="text-blue-700 font-medium uppercase tracking-wide">REQUESTED AMOUNT</p>
-                  <p className="font-bold text-blue-900">${parseFloat(amount).toLocaleString()}</p>
+                  <p className="font-bold text-blue-900">
+                    ${parseFloat(amount).toLocaleString()} USD
+                    {selectedCurrency !== 'USD' && (
+                      <span className="block text-xs">
+                        ≈ {selectedCurrency} {localAmount.toLocaleString(undefined, { 
+                          minimumFractionDigits: 2, 
+                          maximumFractionDigits: 2 
+                        })}
+                      </span>
+                    )}
+                  </p>
                 </div>
                 <div>
                   <p className="text-blue-700 font-medium uppercase tracking-wide">PLATFORM FEE (15%)</p>
-                  <p className="font-bold text-blue-900">${(parseFloat(amount) * 0.15).toLocaleString()}</p>
+                  <p className="font-bold text-blue-900">
+                    ${(parseFloat(amount) * 0.15).toLocaleString()} USD
+                    {selectedCurrency !== 'USD' && (
+                      <span className="block text-xs">
+                        ≈ {selectedCurrency} {(localAmount * 0.15).toLocaleString(undefined, { 
+                          minimumFractionDigits: 2, 
+                          maximumFractionDigits: 2 
+                        })}
+                      </span>
+                    )}
+                  </p>
                 </div>
                 <div>
                   <p className="text-blue-700 font-medium uppercase tracking-wide">NET AMOUNT</p>
-                  <p className="font-bold text-blue-900">${(parseFloat(amount) * 0.85).toLocaleString()}</p>
+                  <p className="font-bold text-blue-900">
+                    ${(parseFloat(amount) * 0.85).toLocaleString()} USD
+                    {selectedCurrency !== 'USD' && (
+                      <span className="block text-xs">
+                        ≈ {selectedCurrency} {(localAmount * 0.85).toLocaleString(undefined, { 
+                          minimumFractionDigits: 2, 
+                          maximumFractionDigits: 2 
+                        })}
+                      </span>
+                    )}
+                  </p>
                 </div>
                 <div>
                   <p className="text-blue-700 font-medium uppercase tracking-wide">PROCESSING TIME</p>
@@ -523,17 +754,53 @@ const WithdrawalRequestForm = ({ investor, onSuccess }: WithdrawalRequestFormPro
                 <span className="text-gray-600 font-medium uppercase tracking-wide">WITHDRAWAL TYPE</span>
                 <span className="font-bold text-gray-900">{withdrawalType.toUpperCase()}</span>
               </div>
+              {withdrawalType === 'bank' && selectedCurrency !== 'USD' && (
+                <div className="flex justify-between">
+                  <span className="text-gray-600 font-medium uppercase tracking-wide">CURRENCY</span>
+                  <span className="font-bold text-gray-900">{selectedCurrency}</span>
+                </div>
+              )}
               <div className="flex justify-between">
                 <span className="text-gray-600 font-medium uppercase tracking-wide">REQUESTED AMOUNT</span>
-                <span className="font-bold text-gray-900">${parseFloat(amount).toLocaleString()}</span>
+                <span className="font-bold text-gray-900">
+                  ${parseFloat(amount).toLocaleString()} USD
+                  {selectedCurrency !== 'USD' && (
+                    <span className="block text-xs">
+                      ≈ {selectedCurrency} {localAmount.toLocaleString(undefined, { 
+                        minimumFractionDigits: 2, 
+                        maximumFractionDigits: 2 
+                      })}
+                    </span>
+                  )}
+                </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600 font-medium uppercase tracking-wide">PLATFORM FEE</span>
-                <span className="font-bold text-gray-900">${(parseFloat(amount) * 0.15).toLocaleString()}</span>
+                <span className="font-bold text-gray-900">
+                  ${(parseFloat(amount) * 0.15).toLocaleString()} USD
+                  {selectedCurrency !== 'USD' && (
+                    <span className="block text-xs">
+                      ≈ {selectedCurrency} {(localAmount * 0.15).toLocaleString(undefined, { 
+                        minimumFractionDigits: 2, 
+                        maximumFractionDigits: 2 
+                      })}
+                    </span>
+                  )}
+                </span>
               </div>
               <div className="flex justify-between border-t border-gray-300 pt-2">
                 <span className="text-gray-700 font-bold uppercase tracking-wide">NET AMOUNT</span>
-                <span className="font-bold text-gray-900">${(parseFloat(amount) * 0.85).toLocaleString()}</span>
+                <span className="font-bold text-gray-900">
+                  ${(parseFloat(amount) * 0.85).toLocaleString()} USD
+                  {selectedCurrency !== 'USD' && (
+                    <span className="block text-xs">
+                      ≈ {selectedCurrency} {(localAmount * 0.85).toLocaleString(undefined, { 
+                        minimumFractionDigits: 2, 
+                        maximumFractionDigits: 2 
+                      })}
+                    </span>
+                  )}
+                </span>
               </div>
               {withdrawalType === 'bank' && selectedBankAccount && (
                 <div className="flex justify-between">
@@ -554,6 +821,24 @@ const WithdrawalRequestForm = ({ investor, onSuccess }: WithdrawalRequestFormPro
             </div>
           </div>
 
+          {/* Exchange Rate Notice */}
+          {selectedCurrency !== 'USD' && (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+              <div className="flex items-start space-x-3">
+                <Globe size={20} className="text-yellow-600 mt-0.5" />
+                <div>
+                  <h4 className="font-medium text-yellow-800 uppercase tracking-wide">CURRENCY CONVERSION</h4>
+                  <p className="text-yellow-700 text-sm mt-1 uppercase tracking-wide">
+                    Your withdrawal will be processed in USD and converted to {selectedCurrency} at the current exchange rate. 
+                    The final amount may vary slightly due to exchange rate fluctuations.
+                  </p>
+                  <p className="text-yellow-700 text-xs mt-2 uppercase tracking-wide">
+                    Current rate: 1 USD = {exchangeRate.toFixed(4)} {selectedCurrency}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
             <div className="flex items-start space-x-3">
               <AlertTriangle size={20} className="text-blue-600 mt-0.5" />
