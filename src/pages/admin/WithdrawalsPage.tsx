@@ -26,7 +26,8 @@ import {
   X,
   FileText,
   Plus,
-  Flag
+  Flag,
+  Wallet
 } from 'lucide-react';
 
 type FilterStatus = 'all' | 'pending' | 'approved' | 'rejected';
