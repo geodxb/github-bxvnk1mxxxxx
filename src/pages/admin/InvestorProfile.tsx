@@ -390,12 +390,22 @@ const InvestorProfile = () => {
 
             {/* Withdrawal Request Form - Only show if not marked for deletion */}
             {!isDeletionRequested && (
-              <WithdrawalRequestForm
-                investor={investorData}
-                onSuccess={() => {
-                  // Real-time listeners will automatically update
-                }}
-              />
+              <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
+                <div className="px-6 py-4 border-b border-gray-100">
+                  <h3 className="text-lg font-semibold text-gray-900">Withdrawal Request</h3>
+                </div>
+                <div className="p-6">
+                  <p className="text-gray-600 mb-4">
+                    Withdrawal request functionality is managed through the main withdrawals page.
+                  </p>
+                  <button
+                    onClick={() => navigate('/admin/withdrawals')}
+                    className="px-4 py-2 bg-gray-900 text-white font-medium hover:bg-gray-800 transition-colors rounded-lg"
+                  >
+                    Manage Withdrawals
+                  </button>
+                </div>
+              </div>
             )}
 
             {/* Refined Commission Information */}
