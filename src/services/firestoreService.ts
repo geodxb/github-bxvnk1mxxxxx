@@ -432,6 +432,16 @@ export class FirestoreService {
         throw new Error('Crypto wallet not found');
       }
 
+      // Update the wallet status to pending_deletion in the investor's profile
+      const updatedWallets = currentInvestor.cryptoWallets?.map(w =>
+        w.id === walletId ? { ...w, verificationStatus: 'pending_deletion' as const } : w
+      ) || [];
+
+      await updateDoc(investorRef, {
+        cryptoWallets: updatedWallets,
+        updatedAt: serverTimestamp()
+      });
+
       // Create a verification request for Governor approval to delete
       await FirestoreService.addDocument('cryptoWalletVerificationRequests', {
         investorId,
@@ -445,7 +455,6 @@ export class FirestoreService {
         status: 'pending'
       });
 
-      // The actual deletion from the investor's profile will happen after Governor approval
       console.log('✅ Firebase: Crypto wallet marked for deletion and verification request created successfully');
     } catch (error) {
       console.error('❌ Firebase Error: Failed to delete crypto wallet:', error);

@@ -549,17 +549,66 @@ const WithdrawalRequestForm = ({ investor, onSuccess }: WithdrawalRequestFormPro
                   ))}
                 </div>
               ) : (
-                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-                  <div className="flex items-start space-x-3">
-                    <AlertTriangle size={20} className="text-amber-600 mt-0.5" />
-                    <div>
-                      <h4 className="font-medium text-amber-800 uppercase tracking-wide">NO APPROVED CRYPTO WALLETS</h4>
-                      <p className="text-amber-700 text-sm mt-1 uppercase tracking-wide">
-                        You need to register and verify at least one crypto wallet before making crypto withdrawals.
-                      </p>
-                    </div>
-                  </div>
-                </div>
+                (() => {
+                  // Check if there are any pending wallets
+                  const pendingWallets = (investor.cryptoWallets || []).filter(
+                    wallet => wallet.verificationStatus === 'pending'
+                  );
+                  
+                  if (pendingWallets.length > 0) {
+                    return (
+                      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                        <div className="flex items-start space-x-3">
+                          <Clock size={20} className="text-yellow-600 mt-0.5" />
+                          <div>
+                            <h4 className="font-medium text-yellow-800 uppercase tracking-wide">
+                              CRYPTO WALLETS PENDING VERIFICATION
+                            </h4>
+                            <p className="text-yellow-700 text-sm mt-1 uppercase tracking-wide">
+                              You have {pendingWallets.length} crypto wallet{pendingWallets.length > 1 ? 's' : ''} pending Governor approval.
+                            </p>
+                            <div className="mt-3 space-y-2">
+                              {pendingWallets.map((wallet) => (
+                                <div key={wallet.id} className="bg-white p-3 rounded border border-yellow-300">
+                                  <div className="flex items-center space-x-2">
+                                    <Wallet size={14} className="text-yellow-600" />
+                                    <span className="font-bold text-yellow-900 text-sm uppercase tracking-wide">
+                                      {wallet.coinType} ({wallet.networkType})
+                                    </span>
+                                    <span className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full font-medium uppercase tracking-wide">
+                                      PENDING APPROVAL
+                                    </span>
+                                  </div>
+                                  <p className="text-xs text-yellow-700 mt-1 break-all">
+                                    {wallet.walletAddress}
+                                  </p>
+                                </div>
+                              ))}
+                            </div>
+                            <p className="text-yellow-700 text-xs mt-3 uppercase tracking-wide">
+                              Crypto withdrawals will be available once your wallet{pendingWallets.length > 1 ? 's are' : ' is'} approved by the Governor.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  } else {
+                    return (
+                      <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                        <div className="flex items-start space-x-3">
+                          <AlertTriangle size={20} className="text-amber-600 mt-0.5" />
+                          <div>
+                            <h4 className="font-medium text-amber-800 uppercase tracking-wide">NO APPROVED CRYPTO WALLETS</h4>
+                            <p className="text-amber-700 text-sm mt-1 uppercase tracking-wide">
+                              You need to register and verify at least one crypto wallet before making crypto withdrawals.
+                              Go to the "Crypto Wallets" tab to add your wallet addresses.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  }
+                })()
               )}
             </div>
           )}

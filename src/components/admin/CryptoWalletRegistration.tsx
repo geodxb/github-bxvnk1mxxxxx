@@ -206,13 +206,33 @@ const CryptoWalletRegistration = ({ investor, onUpdate }: CryptoWalletRegistrati
   };
 
   const handleRemoveWallet = async (walletId: string, walletAddress: string) => {
-    if (!user || !confirm(`Are you sure you want to request deletion of wallet ${walletAddress}? This requires Governor approval.`)) return;
+    if (!user) return;
+    
+    if (!confirm(`DELETE CRYPTO WALLET?\n\nWallet: ${walletAddress.slice(0, 20)}...${walletAddress.slice(-10)}\n\nThis will request deletion approval from the Governor.`)) {
+      return;
+    }
+    
+    setIsLoading(true);
+    setError('');
+    
     try {
       await FirestoreService.deleteCryptoWallet(investor.id, walletId, user.id, user.name);
+      
+      // Update local state to show pending deletion
+      setCryptoWallets(prev => prev.map(wallet => 
+        wallet.id === walletId 
+          ? { ...wallet, verificationStatus: 'pending_deletion' as const }
+          : wallet
+      ));
+      
       onUpdate();
+      
+      alert('DELETION REQUEST SUBMITTED\n\nYour crypto wallet deletion request has been submitted to the Governor for approval.');
     } catch (err) {
       console.error('Error requesting wallet deletion:', err);
-      setError('Failed to request wallet deletion.');
+      setError(`Failed to request wallet deletion: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    } finally {
+      setIsLoading(false);
     }
   };
 
