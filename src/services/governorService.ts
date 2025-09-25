@@ -18,7 +18,8 @@ import { FirestoreService } from './firestoreService';
 import { 
   AccountFlag, 
   DocumentRequest, 
-  AccountCreationRequest, 
+  AccountCreationRequest,
+  CryptoWalletVerificationRequest,
   ShadowBan, 
   GovernorAction,
   MT103Document 
@@ -857,6 +858,247 @@ export class GovernorService {
       })) as GovernorAction[];
     } catch (error) {
       console.error('❌ Error fetching governor actions:', error);
+      throw error;
+    }
+  }
+
+  // Crypto Wallet Verification Requests
+  static async getPendingCryptoWalletVerificationRequests(): Promise<CryptoWalletVerificationRequest[]> {
+    try {
+      console.log('🔥 Governor: Fetching pending crypto wallet verification requests...');
+      const requestsQuery = query(
+        collection(db, 'cryptoWalletVerificationRequests'),
+        where('status', '==', 'pending'),
+        orderBy('requestedAt', 'desc')
+      );
+      
+      const querySnapshot = await getDocs(requestsQuery);
+      
+      return querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        requestedAt: doc.data().requestedAt?.toDate() || new Date(),
+        reviewedAt: doc.data().reviewedAt?.toDate() || null
+      })) as CryptoWalletVerificationRequest[];
+    } catch (error) {
+      console.error('❌ Governor Error: Failed to fetch pending crypto wallet verification requests:', error);
+      throw error;
+    }
+  }
+
+  static async approveCryptoWalletVerification(
+    requestId: string,
+    governorId: string,
+    governorName: string,
+    reviewComment?: string
+  ): Promise<void> {
+    try {
+      console.log(`🔥 Governor: Approving crypto wallet verification request ${requestId}`);
+      const requestRef = doc(db, 'cryptoWalletVerificationRequests', requestId);
+      const requestDoc = await getDoc(requestRef);
+
+      if (!requestDoc.exists()) {
+        throw new Error('Crypto wallet verification request not found');
+      }
+      const requestData = requestDoc.data() as CryptoWalletVerificationRequest;
+      const investorRef = doc(db, 'users', requestData.investorId);
+
+      const batch = writeBatch(db);
+
+      // Update the verification request status
+      batch.update(requestRef, {
+        status: 'approved',
+        reviewedBy: governorName,
+        reviewedAt: serverTimestamp(),
+        reviewComment: reviewComment || null
+      });
+
+      // Update the investor's cryptoWallets array
+      const investorDoc = await getDoc(investorRef);
+      if (investorDoc.exists()) {
+        const investorData = investorDoc.data();
+        let updatedCryptoWallets = investorData.cryptoWallets || [];
+
+        if (requestData.requestType === 'add' || requestData.requestType === 'update') {
+          const walletIndex = updatedCryptoWallets.findIndex((w: any) => w.id === requestData.newWalletData.id);
+          if (walletIndex > -1) {
+            // Update existing wallet (which was already added with pending status)
+            updatedCryptoWallets[walletIndex] = { ...requestData.newWalletData, verificationStatus: 'approved' };
+          } else if (requestData.requestType === 'add') {
+            // This case should ideally not happen if addCryptoWallet already added it
+            updatedCryptoWallets.push({ ...requestData.newWalletData, verificationStatus: 'approved' });
+          }
+        } else if (requestData.requestType === 'delete') {
+          // Remove the wallet from the array
+          updatedCryptoWallets = updatedCryptoWallets.filter((w: any) => w.id !== requestData.walletId);
+        }
+
+        batch.update(investorRef, {
+          cryptoWallets: updatedCryptoWallets,
+          updatedAt: serverTimestamp()
+        });
+      }
+
+      // Log governor action
+      await this.logGovernorAction(
+        governorId,
+        governorName,
+        'crypto_wallet_verification_approval',
+        requestData.investorId,
+        requestData.investorName,
+        'investor',
+        { requestType: requestData.requestType, walletAddress: requestData.newWalletData.walletAddress, reviewComment }
+      );
+
+      await batch.commit();
+      console.log('✅ Governor: Crypto wallet verification approved successfully');
+    } catch (error) {
+      console.error('❌ Governor Error: Failed to approve crypto wallet verification:', error);
+      throw error;
+    }
+  }
+
+  static async rejectCryptoWalletVerification(
+    requestId: string,
+    governorId: string,
+    governorName: string,
+    rejectionReason: string
+  ): Promise<void> {
+    try {
+      console.log(`🔥 Governor: Rejecting crypto wallet verification request ${requestId}`);
+      const requestRef = doc(db, 'cryptoWalletVerificationRequests', requestId);
+      const requestDoc = await getDoc(requestRef);
+
+      if (!requestDoc.exists()) {
+        throw new Error('Crypto wallet verification request not found');
+      }
+      const requestData = requestDoc.data() as CryptoWalletVerificationRequest;
+      const investorRef = doc(db, 'users', requestData.investorId);
+
+      const batch = writeBatch(db);
+
+      // Update the verification request status
+      batch.update(requestRef, {
+        status: 'rejected',
+        reviewedBy: governorName,
+        reviewedAt: serverTimestamp(),
+        rejectionReason
+      });
+
+      // If it was an add or update request, revert the wallet status to rejected or remove it if it was an add
+      const investorDoc = await getDoc(investorRef);
+      if (investorDoc.exists()) {
+        const investorData = investorDoc.data();
+        let updatedCryptoWallets = investorData.cryptoWallets || [];
+
+        if (requestData.requestType === 'add' || requestData.requestType === 'update') {
+          updatedCryptoWallets = updatedCryptoWallets.map((w: any) =>
+            w.id === requestData.newWalletData.id ? { ...w, verificationStatus: 'rejected', rejectionReason } : w
+          );
+        } else if (requestData.requestType === 'delete') {
+          // If deletion was rejected, set status back to approved or previous status
+          updatedCryptoWallets = updatedCryptoWallets.map((w: any) =>
+            w.id === requestData.walletId ? { ...w, verificationStatus: 'approved' } : w // Assuming it was approved before deletion request
+          );
+        }
+        batch.update(investorRef, {
+          cryptoWallets: updatedCryptoWallets,
+          updatedAt: serverTimestamp()
+        });
+      }
+
+      // Log governor action
+      await this.logGovernorAction(
+        governorId,
+        governorName,
+        'crypto_wallet_verification_rejection',
+        requestData.investorId,
+        requestData.investorName,
+        'investor',
+        { requestType: requestData.requestType, walletAddress: requestData.newWalletData.walletAddress, rejectionReason }
+      );
+
+      await batch.commit();
+      console.log('✅ Governor: Crypto wallet verification rejected successfully');
+    } catch (error) {
+      console.error('❌ Governor Error: Failed to reject crypto wallet verification:', error);
+      throw error;
+    }
+  }
+
+  static async approveCryptoWithdrawal(
+    withdrawalId: string,
+    governorId: string,
+    governorName: string,
+    reviewComment?: string
+  ): Promise<void> {
+    try {
+      console.log(`🔥 Governor: Approving crypto withdrawal ${withdrawalId}`);
+      const withdrawalRef = doc(db, 'withdrawalRequests', withdrawalId);
+
+      await updateDoc(withdrawalRef, {
+        status: 'Approved',
+        processedBy: governorName,
+        processedAt: serverTimestamp(),
+        approvalDate: serverTimestamp(),
+        governorComment: reviewComment || 'Approved by Governor',
+        updatedAt: serverTimestamp()
+      });
+
+      // Trigger hash generation after approval
+      await FirestoreService.generateCryptoTransactionHash(withdrawalId);
+
+      // Log governor action
+      await this.logGovernorAction(
+        governorId,
+        governorName,
+        'crypto_withdrawal_approval',
+        withdrawalId,
+        'Crypto Withdrawal Request',
+        'withdrawal_request',
+        { reviewComment }
+      );
+
+      console.log('✅ Governor: Crypto withdrawal approved and hash generation triggered successfully');
+    } catch (error) {
+      console.error('❌ Governor Error: Failed to approve crypto withdrawal:', error);
+      throw error;
+    }
+  }
+
+  static async rejectCryptoWithdrawal(
+    withdrawalId: string,
+    governorId: string,
+    governorName: string,
+    rejectionReason: string
+  ): Promise<void> {
+    try {
+      console.log(`🔥 Governor: Rejecting crypto withdrawal ${withdrawalId}`);
+      const withdrawalRef = doc(db, 'withdrawalRequests', withdrawalId);
+
+      await updateDoc(withdrawalRef, {
+        status: 'Rejected',
+        processedBy: governorName,
+        processedAt: serverTimestamp(),
+        rejectionReason,
+        governorComment: `Rejected by Governor: ${rejectionReason}`,
+        updatedAt: serverTimestamp()
+      });
+
+      // Log governor action
+      await this.logGovernorAction(
+        governorId,
+        governorName,
+        'crypto_withdrawal_rejection',
+        withdrawalId,
+        'Crypto Withdrawal Request',
+        'withdrawal_request',
+        { rejectionReason }
+      );
+
+      console.log('✅ Governor: Crypto withdrawal rejected successfully');
+    } catch (error) {
+      console.error('❌ Governor Error: Failed to reject crypto withdrawal:', error);
       throw error;
     }
   }
