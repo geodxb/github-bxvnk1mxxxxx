@@ -366,8 +366,11 @@ const WithdrawalProgressBar = ({
         
         if (approvalDate) {
           const approvalDateTime = new Date(approvalDate);
-          // Estimate credit date (1-3 business days from approval)
-          const creditEstimate = addBusinessDays(approvalDateTime, 3);
+          // Different estimates for crypto vs bank
+          const isCrypto = withdrawalRequest?.withdrawalType === 'crypto';
+          const creditEstimate = isCrypto ? 
+            addBusinessDays(approvalDateTime, 1) : // Crypto: faster once hash is generated
+            addBusinessDays(approvalDateTime, 3);   // Bank: 1-3 business days
           setEstimatedCompletionDate(creditEstimate);
         }
         break;
@@ -384,7 +387,7 @@ const WithdrawalProgressBar = ({
         setEstimatedCompletionDate(null);
         break;
     }
-  }, [currentStatus, submissionDate, approvalDate, creditDate, rejectionDate]);
+  }, [currentStatus, submissionDate, approvalDate, creditDate, rejectionDate, withdrawalRequest]);
 
   const getProgressBarColor = () => {
     switch (currentStatus) {
@@ -417,32 +420,37 @@ const WithdrawalProgressBar = ({
   };
 
   const getStatusMessage = () => {
+    // Check if this is a crypto withdrawal
+    const isCryptoWithdrawal = withdrawalRequest?.withdrawalType === 'crypto';
+    const transferMethod = isCryptoWithdrawal ? 'blockchain transfer' : 'bank wire transfer';
+    const transferDestination = isCryptoWithdrawal ? 'crypto wallet' : 'registered bank account';
+    
     switch (currentStatus) {
       case 'Pending':
         return {
-          title: 'Withdrawal Request Submitted',
-          message: 'Your withdrawal request is being reviewed by our team.',
-          detail: `Submitted ${businessDaysElapsed} business day${businessDaysElapsed !== 1 ? 's' : ''} ago. Typical processing time is 1-3 business days.`
+          title: `${isCryptoWithdrawal ? 'Crypto' : 'Bank'} Withdrawal Request Submitted`,
+          message: `Your ${isCryptoWithdrawal ? 'cryptocurrency' : 'bank'} withdrawal request is being reviewed by our team.`,
+          detail: `Submitted ${businessDaysElapsed} business day${businessDaysElapsed !== 1 ? 's' : ''} ago. ${isCryptoWithdrawal ? 'Crypto withdrawals require Governor approval.' : 'Typical processing time is 1-3 business days.'}`
         };
       case 'Approved':
         return {
-          title: 'Withdrawal Request Approved',
-          message: 'Your withdrawal has been approved and is being processed for transfer.',
+          title: `${isCryptoWithdrawal ? 'Crypto' : 'Bank'} Withdrawal Request Approved`,
+          message: `Your withdrawal has been approved and is being processed for ${transferMethod}.`,
           detail: approvalDate 
-            ? `Approved on ${new Date(approvalDate).toLocaleDateString()}. Funds will be transferred within 1-3 business days.`
-            : 'Funds will be transferred to your registered bank account within 1-3 business days.'
+            ? `Approved on ${new Date(approvalDate).toLocaleDateString()}. ${isCryptoWithdrawal ? 'Transaction hash will be generated shortly.' : 'Funds will be transferred within 1-3 business days.'}`
+            : `Funds will be transferred to your ${transferDestination} ${isCryptoWithdrawal ? 'once transaction is broadcast to the blockchain' : 'within 1-3 business days'}.`
         };
       case 'Credited':
         return {
-          title: 'Withdrawal Completed',
-          message: 'Your withdrawal has been successfully transferred to your bank account.',
+          title: `${isCryptoWithdrawal ? 'Crypto' : 'Bank'} Withdrawal Completed`,
+          message: `Your withdrawal has been successfully transferred ${isCryptoWithdrawal ? 'to the blockchain' : 'to your bank account'}.`,
           detail: creditDate 
-            ? `Completed on ${new Date(creditDate).toLocaleDateString()}. Funds should appear in your account within 1-2 business days.`
-            : 'Funds have been transferred and should appear in your account within 1-2 business days.'
+            ? `Completed on ${new Date(creditDate).toLocaleDateString()}. ${isCryptoWithdrawal ? 'Transaction is confirmed on the blockchain.' : 'Funds should appear in your account within 1-2 business days.'}`
+            : `Funds have been transferred and should ${isCryptoWithdrawal ? 'be visible on the blockchain' : 'appear in your account within 1-2 business days'}.`
         };
       case 'Rejected':
         return {
-          title: 'Withdrawal Request Rejected',
+          title: `${isCryptoWithdrawal ? 'Crypto' : 'Bank'} Withdrawal Request Rejected`,
           message: 'Your withdrawal request has been rejected.',
           detail: rejectionReason || 'Please contact support for more information about this rejection.'
         };
@@ -904,15 +912,31 @@ const WithdrawalProgressBar = ({
               )}
             </div>
             <div className="flex-1">
-              <p className="font-semibold text-gray-900">Approved for Transfer</p>
+              <p className="font-semibold text-gray-900">
+                {withdrawalRequest?.withdrawalType === 'crypto' ? 'Approved for Blockchain Transfer' : 'Approved for Transfer'}
+              </p>
               <p className="text-gray-600 text-sm">
                 {currentStage >= 2 
                   ? approvalDate 
                     ? `Approved on ${new Date(approvalDate).toLocaleDateString()}`
                     : 'Approved and queued for transfer'
-                  : 'Pending approval from compliance team'
+                  : withdrawalRequest?.withdrawalType === 'crypto' ? 
+                    'Pending Governor approval for crypto withdrawal' : 
+                    'Pending approval from compliance team'
                 }
               </p>
+              
+              {/* Show transaction hash if available */}
+              {currentStage >= 2 && withdrawalRequest?.transactionHash && (
+                <div className="mt-2 bg-green-50 border border-green-200 rounded p-2">
+                  <p className="text-green-800 text-xs font-bold uppercase tracking-wide mb-1">
+                    BLOCKCHAIN TRANSACTION HASH:
+                  </p>
+                  <p className="font-mono text-green-900 text-xs break-all">
+                    {withdrawalRequest.transactionHash}
+                  </p>
+                </div>
+              )}
             </div>
             {currentStage >= 2 && approvalDate && (
               <div className="text-right">
@@ -941,13 +965,19 @@ const WithdrawalProgressBar = ({
               )}
             </div>
             <div className="flex-1">
-              <p className="font-semibold text-gray-900">Transfer Completed</p>
+              <p className="font-semibold text-gray-900">
+                {withdrawalRequest?.withdrawalType === 'crypto' ? 'Blockchain Transfer Completed' : 'Transfer Completed'}
+              </p>
               <p className="text-gray-600 text-sm">
                 {currentStage >= 3 && currentStatus === 'Credited'
                   ? creditDate 
                     ? `Completed on ${new Date(creditDate).toLocaleDateString()}`
-                    : 'Funds transferred to your bank account'
-                  : 'Awaiting bank transfer completion'
+                    : withdrawalRequest?.withdrawalType === 'crypto' ?
+                      'Funds transferred to blockchain' :
+                      'Funds transferred to your bank account'
+                  : withdrawalRequest?.withdrawalType === 'crypto' ?
+                    'Awaiting blockchain confirmation' :
+                    'Awaiting bank transfer completion'
                 }
               </p>
             </div>
@@ -993,7 +1023,9 @@ const WithdrawalProgressBar = ({
 
         {/* Processing Information */}
         <div className="bg-gray-50 p-4 rounded-lg border border-gray-100">
-          <h4 className="font-semibold text-gray-900 mb-2">Processing Information</h4>
+          <h4 className="font-semibold text-gray-900 mb-2">
+            {withdrawalRequest?.withdrawalType === 'crypto' ? 'Crypto Transfer Information' : 'Processing Information'}
+          </h4>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-700">
             <div>
               <p><strong>Submission Date:</strong> {new Date(submissionDate).toLocaleDateString()}</p>
@@ -1001,13 +1033,99 @@ const WithdrawalProgressBar = ({
               <p><strong>Current Status:</strong> {currentStatus}</p>
             </div>
             <div>
-              <p><strong>Processing Time:</strong> 1-3 business days</p>
-              <p><strong>Transfer Method:</strong> Bank Wire Transfer</p>
+              <p><strong>Processing Time:</strong> {withdrawalRequest?.withdrawalType === 'crypto' ? 'Governor approval required' : '1-3 business days'}</p>
+              <p><strong>Transfer Method:</strong> {withdrawalRequest?.withdrawalType === 'crypto' ? 'Blockchain Transfer' : 'Bank Wire Transfer'}</p>
+              {withdrawalRequest?.withdrawalType === 'crypto' && (
+                <>
+                  <p><strong>Network:</strong> {withdrawalRequest.cryptoNetworkType || 'Unknown'}</p>
+                  <p><strong>Coin Type:</strong> {withdrawalRequest.cryptoCoinType || 'Unknown'}</p>
+                </>
+              )}
               {localCurrency !== 'USD' && (
                 <p><strong>Currency:</strong> Converted to {localCurrency}</p>
               )}
             </div>
           </div>
+          
+          {/* Crypto-specific information */}
+          {withdrawalRequest?.withdrawalType === 'crypto' && (
+            <div className="mt-4 pt-4 border-t border-gray-200">
+              <h5 className="font-semibold text-gray-900 mb-2 uppercase tracking-wide">CRYPTO WALLET DETAILS</h5>
+              <div className="bg-white p-3 rounded border border-gray-200">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <p className="text-gray-600 font-medium uppercase tracking-wide">WALLET ADDRESS</p>
+                    <p className="font-mono text-gray-900 text-xs break-all">
+                      {withdrawalRequest.cryptoWalletAddress || 'Not available'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-gray-600 font-medium uppercase tracking-wide">NETWORK</p>
+                    <p className="font-medium text-gray-900">
+                      {withdrawalRequest.cryptoNetworkType || 'Unknown'} ({withdrawalRequest.cryptoCoinType || 'Unknown'})
+                    </p>
+                  </div>
+                </div>
+                
+                {/* Transaction Hash Display */}
+                {withdrawalRequest.transactionHash && (
+                  <div className="mt-3 pt-3 border-t border-gray-200">
+                    <p className="text-gray-600 font-medium uppercase tracking-wide mb-1">TRANSACTION HASH</p>
+                    <div className="bg-green-50 border border-green-200 rounded p-3">
+                      <div className="flex items-center space-x-2 mb-2">
+                        <CheckCircle size={16} className="text-green-600" />
+                        <span className="text-green-800 font-bold text-sm uppercase tracking-wide">
+                          HASH GENERATED
+                        </span>
+                        {withdrawalRequest.hashGeneratedAt && (
+                          <span className="text-green-700 text-xs">
+                            {new Date(withdrawalRequest.hashGeneratedAt.toDate ? 
+                              withdrawalRequest.hashGeneratedAt.toDate() : 
+                              withdrawalRequest.hashGeneratedAt
+                            ).toLocaleDateString()}
+                          </span>
+                        )}
+                      </div>
+                      <p className="font-mono text-green-900 text-xs break-all bg-white p-2 rounded border border-green-300">
+                        {withdrawalRequest.transactionHash}
+                      </p>
+                      <div className="mt-2 flex items-center space-x-2">
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText(withdrawalRequest.transactionHash);
+                            alert('Transaction hash copied to clipboard!');
+                          }}
+                          className="px-2 py-1 bg-green-600 text-white text-xs font-bold hover:bg-green-700 transition-colors rounded uppercase tracking-wide"
+                        >
+                          COPY HASH
+                        </button>
+                        <span className="text-green-700 text-xs uppercase tracking-wide">
+                          STATUS: {withdrawalRequest.hashStatus?.replace('_', ' ').toUpperCase() || 'GENERATED'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
+                {/* Hash Generation Status for Approved Crypto Withdrawals */}
+                {currentStatus === 'Approved' && !withdrawalRequest.transactionHash && (
+                  <div className="mt-3 pt-3 border-t border-gray-200">
+                    <div className="bg-blue-50 border border-blue-200 rounded p-3">
+                      <div className="flex items-center space-x-2">
+                        <Clock size={16} className="text-blue-600" />
+                        <span className="text-blue-800 font-bold text-sm uppercase tracking-wide">
+                          GENERATING TRANSACTION HASH
+                        </span>
+                      </div>
+                      <p className="text-blue-700 text-sm mt-1 uppercase tracking-wide">
+                        Your crypto withdrawal has been approved. The blockchain transaction hash is being generated and will appear here shortly.
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
