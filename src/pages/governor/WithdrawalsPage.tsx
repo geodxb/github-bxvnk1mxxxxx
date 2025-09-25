@@ -3,6 +3,7 @@ import GovernorLayout from '../../components/layout/GovernorLayout';
 import { useWithdrawalRequests, useInvestors } from '../../hooks/useFirestore';
 import { FirestoreService } from '../../services/firestoreService';
 import { WithdrawalFlagService } from '../../services/withdrawalFlagService';
+import { GovernorService } from '../../services/governorService';
 import { useWithdrawalFlags } from '../../hooks/useWithdrawalFlags';
 import { useAuth } from '../../contexts/AuthContext';
 import { 
