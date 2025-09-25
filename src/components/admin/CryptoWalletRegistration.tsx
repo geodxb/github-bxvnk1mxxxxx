@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Modal from '../common/Modal';
 import Button from '../common/Button';
+import Card from '../common/Card';
 import { FirestoreService } from '../../services/firestoreService';
 import { useAuth } from '../../contexts/AuthContext';
 import { Investor, CryptoWallet } from '../../types/user';

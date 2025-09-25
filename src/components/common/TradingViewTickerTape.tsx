@@ -54,9 +54,9 @@ const TradingViewTickerTape = ({
 
     // Add error handling for TradingView widget
     const handleTradingViewError = (error: ErrorEvent) => {
-      if (error.message?.includes('contentWindow is not available')) {
+      if (error.message?.includes('contentWindow') || error.message?.includes('iframe')) {
         // Suppress this specific TradingView iframe error as it's non-critical
-        console.warn('TradingView widget iframe warning (non-critical):', error.message);
+        error.preventDefault();
         return;
       }
     };
