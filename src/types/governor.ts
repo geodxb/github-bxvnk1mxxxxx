@@ -119,5 +119,5 @@ export interface CryptoWalletVerificationRequest {
   reviewedAt?: Date;
   rejectionReason?: string;
 }
+
 import { CryptoWallet } from './user';
-}
