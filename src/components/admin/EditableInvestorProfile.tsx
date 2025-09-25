@@ -27,7 +27,7 @@ import {
   Phone,
   Mail,
   TrendingUp,
-  Building
+  Building,
   Wallet,
 } from 'lucide-react';
 
