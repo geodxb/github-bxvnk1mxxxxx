@@ -1,4 +1,3 @@
-```typescript
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Modal from '../common/Modal';
