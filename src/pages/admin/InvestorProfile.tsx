@@ -11,10 +11,11 @@ import CryptoWalletRegistration from '../../components/admin/CryptoWalletRegistr
 import SubmitTicketPanel from '../../components/admin/SubmitTicketPanel';
 import BankAccountRegistration from '../../components/admin/BankAccountRegistration';
 import CurrentTicketsDisplay from '../../components/admin/CurrentTicketsDisplay';
+import WithdrawalRequestForm from '../../components/investor/WithdrawalRequestForm';
 import Button from '../../components/common/Button';
 import Card from '../../components/common/Card';
 import Table from '../../components/common/Table'; // Import the Table component
-import { useInvestor, useTransactions } from '../../hooks/useFirestore';
+import { useInvestor, useTransactions, useWithdrawalRequests } from '../../hooks/useFirestore';
 import { useAccountClosure } from '../../hooks/useAccountClosure';
 import { useAuth } from '../../contexts/AuthContext';
 import { FirestoreService } from '../../services/firestoreService';
@@ -38,6 +39,7 @@ const InvestorProfile = () => {
   
   const { investor: investorData, loading, error, refetch } = useInvestor(id || '');
   const { transactions } = useTransactions(id || '');
+  const { withdrawalRequests } = useWithdrawalRequests(id || '');
   const { closureRequest } = useAccountClosure(id || '');
   const { user } = useAuth();
   
@@ -390,23 +392,96 @@ const InvestorProfile = () => {
 
             {/* Withdrawal Request Form - Only show if not marked for deletion */}
             {!isDeletionRequested && (
-              <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
-                <div className="px-6 py-4 border-b border-gray-100">
-                  <h3 className="text-lg font-semibold text-gray-900">Withdrawal Request</h3>
-                </div>
-                <div className="p-6">
-                  <p className="text-gray-600 mb-4">
-                    Withdrawal request functionality is managed through the main withdrawals page.
-                  </p>
-                  <button
-                    onClick={() => navigate('/admin/withdrawals')}
-                    className="px-4 py-2 bg-gray-900 text-white font-medium hover:bg-gray-800 transition-colors rounded-lg"
-                  >
-                    Manage Withdrawals
-                  </button>
-                </div>
-              </div>
+              <WithdrawalRequestForm
+                investor={investorData}
+                onSuccess={() => {
+                  // Refresh data after successful withdrawal request
+                  refetch();
+                }}
+              />
             )}
+
+            {/* Withdrawal History */}
+            <Card title="WITHDRAWAL HISTORY" className="bg-white border border-gray-200 shadow-sm">
+              {withdrawalRequests.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-gray-200 bg-gray-50">
+                        <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wide">DATE</th>
+                        <th className="px-6 py-4 text-right text-sm font-semibold text-gray-700 uppercase tracking-wide">AMOUNT</th>
+                        <th className="px-6 py-4 text-center text-sm font-semibold text-gray-700 uppercase tracking-wide">TYPE</th>
+                        <th className="px-6 py-4 text-center text-sm font-semibold text-gray-700 uppercase tracking-wide">STATUS</th>
+                        <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wide">DETAILS</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {withdrawalRequests.map((request) => (
+                        <tr key={request.id} className="border-b border-gray-100 hover:bg-gray-50">
+                          <td className="px-6 py-4">
+                            <div className="space-y-1">
+                              <p className="text-sm text-gray-900">{new Date(request.date).toLocaleDateString()}</p>
+                              <p className="text-xs text-gray-500">{new Date(request.date).toLocaleDateString('en-US', { weekday: 'short' })}</p>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 text-right">
+                            <div className="text-right">
+                              <p className="font-medium text-gray-900">${request.amount.toLocaleString()}</p>
+                              <p className="text-xs text-gray-500">USD</p>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 text-center">
+                            <span className="px-2 py-1 bg-gray-100 text-gray-800 text-xs rounded-full font-medium uppercase tracking-wide">
+                              {request.withdrawalType || 'BANK'}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-center">
+                            <span className={`px-2 py-1 text-xs rounded-full font-medium uppercase tracking-wide ${
+                              request.status === 'Pending' ? 'bg-yellow-100 text-yellow-800' :
+                              request.status === 'Approved' ? 'bg-green-100 text-green-800' :
+                              request.status === 'Credited' ? 'bg-blue-100 text-blue-800' :
+                              request.status === 'Rejected' ? 'bg-red-100 text-red-800' :
+                              'bg-gray-100 text-gray-800'
+                            }`}>
+                              {request.status}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="space-y-1">
+                              {request.withdrawalType === 'crypto' && request.cryptoWalletAddress && (
+                                <p className="text-xs text-gray-600">
+                                  {request.cryptoCoinType}: {request.cryptoWalletAddress.slice(0, 10)}...{request.cryptoWalletAddress.slice(-6)}
+                                </p>
+                              )}
+                              {request.reason && (
+                                <p className="text-xs text-gray-600">{request.reason}</p>
+                              )}
+                              {request.processedAt && (
+                                <p className="text-xs text-gray-500">
+                                  Processed: {new Date(request.processedAt).toLocaleDateString()}
+                                </p>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <History size={32} className="text-gray-400" />
+                  </div>
+                  <h3 className="text-lg font-medium text-gray-800 mb-2 uppercase tracking-wide">
+                    NO WITHDRAWAL HISTORY
+                  </h3>
+                  <p className="text-gray-500 uppercase tracking-wide text-sm">
+                    No withdrawal requests have been made for this investor
+                  </p>
+                </div>
+              )}
+            </Card>
 
             {/* Refined Commission Information */}
             {withdrawalCount > 0 && (
@@ -523,10 +598,33 @@ const InvestorProfile = () => {
       case 'crypto-wallets':
         return (
           <div className="space-y-6">
-            <CryptoWalletRegistration
-              investor={investorData}
-              onUpdate={refetch}
-            />
+            {investorData.accountType === 'Pro' ? (
+              <CryptoWalletRegistration
+                investor={investorData}
+                onUpdate={refetch}
+              />
+            ) : (
+              <Card title="CRYPTOCURRENCY WALLETS">
+                <div className="text-center py-12">
+                  <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <AlertTriangle size={32} className="text-amber-400" />
+                  </div>
+                  <h3 className="text-lg font-medium text-gray-800 mb-2 uppercase tracking-wide">
+                    PRO ACCOUNT REQUIRED
+                  </h3>
+                  <p className="text-gray-500 mb-6 uppercase tracking-wide text-sm">
+                    Cryptocurrency wallet registration is only available for Pro account holders
+                  </p>
+                  <button
+                    onClick={handleCheckProStatus}
+                    disabled={isCheckingProStatus}
+                    className="px-4 py-2 bg-blue-600 text-white font-medium hover:bg-blue-700 transition-colors rounded-lg disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-wide"
+                  >
+                    {isCheckingProStatus ? 'CHECKING...' : 'UPGRADE TO PRO'}
+                  </button>
+                </div>
+              </Card>
+            )}
           </div>
         );
       default:
