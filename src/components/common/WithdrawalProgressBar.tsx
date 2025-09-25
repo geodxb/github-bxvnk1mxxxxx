@@ -1086,7 +1086,7 @@ const WithdrawalProgressBar = ({
                           </span>
                         )}
                       </div>
-                      <p className="text-green-700 text-sm mb-2 uppercase tracking-wide font-medium">
+                      <p className="text-green-900 text-sm font-bold uppercase tracking-wide">
                         {currentStatus === 'Sent' ? 'BLOCKCHAIN TRANSACTION HASH GENERATED' : 'BLOCKCHAIN TRANSACTION COMPLETED'}
                       </p>
                       <p className="font-mono text-green-900 text-xs break-all bg-white p-2 rounded border border-green-300">
