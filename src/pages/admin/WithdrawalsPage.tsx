@@ -170,8 +170,45 @@ const WithdrawalsPage = () => {
     },
     {
       key: 'bankDetails',
-      header: 'Bank/Platform',
+      header: 'Destination',
       render: (_: any, row: any) => {
+        console.log('🔍 Withdrawal row data:', {
+          id: row.id,
+          withdrawalType: row.withdrawalType,
+          cryptoWalletAddress: row.cryptoWalletAddress,
+          cryptoCoinType: row.cryptoCoinType,
+          cryptoNetworkType: row.cryptoNetworkType,
+          transactionHash: row.transactionHash
+        });
+        
+        // Check if this is a crypto withdrawal
+        if (row.withdrawalType === 'crypto') {
+          return (
+            <div className="space-y-2">
+              <div className="flex items-center space-x-2">
+                <Wallet size={14} className="text-purple-600" />
+                <p className="text-sm font-bold text-gray-900 uppercase tracking-wide">
+                  {row.cryptoCoinType || 'CRYPTO'} WALLET
+                </p>
+              </div>
+              <p className="text-xs text-gray-600 uppercase tracking-wide">
+                {row.cryptoNetworkType || 'BLOCKCHAIN'} NETWORK
+              </p>
+              {row.cryptoWalletAddress && (
+                <p className="text-xs text-gray-500 font-mono">
+                  {row.cryptoWalletAddress.slice(0, 8)}...{row.cryptoWalletAddress.slice(-6)}
+                </p>
+              )}
+              {row.transactionHash && (
+                <p className="text-xs text-green-600 font-mono">
+                  Hash: {row.transactionHash.slice(0, 8)}...
+                </p>
+              )}
+            </div>
+          );
+        }
+        
+        // Default to bank details for bank withdrawals
         const investor = getInvestorDetails(row.investorId);
         
         // Get bank details from investor's bankAccounts or legacy bankDetails
