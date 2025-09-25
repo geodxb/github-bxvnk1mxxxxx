@@ -170,7 +170,7 @@ const CryptoWalletRegistration = ({ investor, onUpdate }: CryptoWalletRegistrati
       setTimeout(() => setIsSuccess(false), 2000);
     } catch (err: any) {
       console.error('Error saving crypto wallet:', err);
-      setError(\`Failed to save crypto wallet: ${err.message}`);
+      setError(`Failed to save crypto wallet: ${err.message}`);
     } finally {
       setIsLoading(false);
     }
