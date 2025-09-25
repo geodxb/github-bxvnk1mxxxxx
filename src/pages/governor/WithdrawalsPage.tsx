@@ -15,7 +15,8 @@ import {
   CheckCircle,
   XCircle,
   User,
-  Building
+  Building,
+  Wallet
 } from 'lucide-react';
 
 const GovernorWithdrawalsPage = () => {
