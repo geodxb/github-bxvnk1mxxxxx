@@ -1084,11 +1084,11 @@ const WithdrawalProgressBar = ({
                               withdrawalRequest.hashGeneratedAt
                             ).toLocaleDateString()}
                       {currentStatus === 'Sent' ? 'BLOCKCHAIN TRANSACTION HASH GENERATED' : 'BLOCKCHAIN TRANSACTION COMPLETED'}
-                        )}
-                      </div>
+                      </p>
                       <p className="font-mono text-green-900 text-xs break-all bg-white p-2 rounded border border-green-300">
                         {withdrawalRequest.transactionHash}
                       </p>
+                    </div>
                       <div className="mt-2 flex items-center space-x-2">
                         <button
                           onClick={() => {
