@@ -17,7 +17,9 @@ import {
   Network,
   QrCode,
   Eye,
-  ArrowRight
+  ArrowRight,
+  Plus,
+  Info
 } from 'lucide-react';
 
 interface WithdrawalRequestFormProps {
@@ -29,6 +31,7 @@ const WithdrawalRequestForm = ({ investor, onSuccess }: WithdrawalRequestFormPro
   const { user } = useAuth();
   const [withdrawalType, setWithdrawalType] = useState<'bank' | 'crypto'>('bank');
   const [amount, setAmount] = useState('');
+  const [selectedBankAccount, setSelectedBankAccount] = useState<any>(null);
   const [selectedCryptoWallet, setSelectedCryptoWallet] = useState<CryptoWallet | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -40,6 +43,19 @@ const WithdrawalRequestForm = ({ investor, onSuccess }: WithdrawalRequestFormPro
     wallet => wallet.verificationStatus === 'approved'
   ) || [];
 
+  // Get registered bank accounts
+  const registeredBankAccounts = investor.bankAccounts || [];
+  const primaryBankAccount = registeredBankAccounts.find(acc => acc.isPrimary) || registeredBankAccounts[0];
+  const legacyBankDetails = investor.bankDetails;
+
+  // Set default bank account on component mount
+  useEffect(() => {
+    if (primaryBankAccount) {
+      setSelectedBankAccount(primaryBankAccount);
+    } else if (legacyBankDetails && legacyBankDetails.bankName) {
+      setSelectedBankAccount(legacyBankDetails);
+    }
+  }, [primaryBankAccount, legacyBankDetails]);
   const validateAmount = () => {
     const numAmount = parseFloat(amount);
     if (isNaN(numAmount) || numAmount <= 0) {
@@ -54,6 +70,12 @@ const WithdrawalRequestForm = ({ investor, onSuccess }: WithdrawalRequestFormPro
     
     if (numAmount < 100) {
       setError('Minimum withdrawal amount is $100');
+      return false;
+    }
+    
+    // Validate bank account selection for bank withdrawals
+    if (withdrawalType === 'bank' && !selectedBankAccount) {
+      setError('Please register a bank account first or select an existing one');
       return false;
     }
     
@@ -231,6 +253,98 @@ const WithdrawalRequestForm = ({ investor, onSuccess }: WithdrawalRequestFormPro
             </div>
           </div>
 
+          {/* Bank Account Selection - Only for bank withdrawals */}
+          {withdrawalType === 'bank' && (
+            <div>
+              <label className="block text-sm font-bold text-gray-700 mb-3 uppercase tracking-wide">
+                SELECT BANK ACCOUNT
+              </label>
+              {registeredBankAccounts.length > 0 ? (
+                <div className="space-y-3">
+                  {registeredBankAccounts.map((account) => (
+                    <button
+                      key={account.id}
+                      onClick={() => setSelectedBankAccount(account)}
+                      className={`w-full p-4 border-2 rounded-lg transition-all text-left ${
+                        selectedBankAccount?.id === account.id
+                          ? 'border-gray-900 bg-gray-50'
+                          : 'border-gray-200 hover:border-gray-300 bg-white'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                          <Building size={20} className="text-gray-600" />
+                          <div>
+                            <p className="font-bold text-gray-900 uppercase tracking-wide">
+                              {account.bankName}
+                            </p>
+                            <p className="text-sm text-gray-600">
+                              {account.accountHolderName} • ***{account.accountNumber.slice(-4)}
+                            </p>
+                            <p className="text-xs text-gray-500 uppercase tracking-wide">
+                              {account.currency} • {account.country}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          {account.isPrimary && (
+                            <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full font-medium uppercase tracking-wide">
+                              PRIMARY
+                            </span>
+                          )}
+                          <span className={`px-2 py-1 text-xs rounded-full font-medium uppercase tracking-wide ${
+                            account.verificationStatus === 'approved' ? 'bg-green-100 text-green-800' :
+                            account.verificationStatus === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                            'bg-red-100 text-red-800'
+                          }`}>
+                            {account.verificationStatus}
+                          </span>
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              ) : legacyBankDetails && legacyBankDetails.bankName ? (
+                <div className="space-y-3">
+                  <button
+                    onClick={() => setSelectedBankAccount(legacyBankDetails)}
+                    className={`w-full p-4 border-2 rounded-lg transition-all text-left ${
+                      selectedBankAccount === legacyBankDetails
+                        ? 'border-gray-900 bg-gray-50'
+                        : 'border-gray-200 hover:border-gray-300 bg-white'
+                    }`}
+                  >
+                    <div className="flex items-center space-x-3">
+                      <Building size={20} className="text-gray-600" />
+                      <div>
+                        <p className="font-bold text-gray-900 uppercase tracking-wide">
+                          {legacyBankDetails.bankName}
+                        </p>
+                        <p className="text-sm text-gray-600">
+                          {legacyBankDetails.accountHolderName || investor.name}
+                        </p>
+                        <p className="text-xs text-gray-500 uppercase tracking-wide">
+                          {legacyBankDetails.currency || 'USD'} • LEGACY ACCOUNT
+                        </p>
+                      </div>
+                    </div>
+                  </button>
+                </div>
+              ) : (
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                  <div className="flex items-start space-x-3">
+                    <AlertTriangle size={20} className="text-amber-600 mt-0.5" />
+                    <div>
+                      <h4 className="font-medium text-amber-800 uppercase tracking-wide">NO BANK ACCOUNT REGISTERED</h4>
+                      <p className="text-amber-700 text-sm mt-1 uppercase tracking-wide">
+                        You need to register a bank account before making withdrawals. Please add your bank account information in the Overview & Profile tab.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
           {/* Crypto Wallet Selection - Only for Pro accounts */}
           {withdrawalType === 'crypto' && investor.accountType === 'Pro' && (
             <div>
@@ -350,7 +464,7 @@ const WithdrawalRequestForm = ({ investor, onSuccess }: WithdrawalRequestFormPro
           <div className="flex justify-end">
             <button
               onClick={handleSubmit}
-              disabled={!amount || parseFloat(amount) <= 0 || (withdrawalType === 'crypto' && !selectedCryptoWallet)}
+              disabled={!amount || parseFloat(amount) <= 0 || (withdrawalType === 'crypto' && !selectedCryptoWallet) || (withdrawalType === 'bank' && !selectedBankAccount)}
               className="px-6 py-3 bg-gray-900 text-white font-medium hover:bg-gray-800 transition-colors rounded-lg disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-wide"
             >
               <ArrowRight size={16} className="mr-2 inline" />
@@ -360,6 +474,36 @@ const WithdrawalRequestForm = ({ investor, onSuccess }: WithdrawalRequestFormPro
         </div>
       </Card>
 
+      {/* Bank Account Registration Notice */}
+      {withdrawalType === 'bank' && registeredBankAccounts.length === 0 && (!legacyBankDetails || !legacyBankDetails.bankName) && (
+        <Card title="BANK ACCOUNT REQUIRED">
+          <div className="text-center py-8">
+            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Building size={32} className="text-blue-600" />
+            </div>
+            <h3 className="text-lg font-medium text-gray-800 mb-2 uppercase tracking-wide">
+              REGISTER BANK ACCOUNT
+            </h3>
+            <p className="text-gray-500 mb-6 uppercase tracking-wide text-sm">
+              To make bank withdrawals, you need to register your bank account information first.
+            </p>
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="flex items-start space-x-3">
+                <Info size={20} className="text-blue-600 mt-0.5" />
+                <div className="text-left">
+                  <h4 className="font-medium text-blue-800 uppercase tracking-wide">HOW TO ADD BANK ACCOUNT</h4>
+                  <p className="text-blue-700 text-sm mt-1 uppercase tracking-wide">
+                    1. Go to the "Overview & Profile" tab<br/>
+                    2. Scroll down to "Registered Bank Accounts" section<br/>
+                    3. Click "Add Bank Account" and fill in your details<br/>
+                    4. Return here to submit withdrawal requests
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </Card>
+      )}
       {/* Confirmation Modal */}
       <Modal
         isOpen={showConfirmModal}
@@ -391,6 +535,14 @@ const WithdrawalRequestForm = ({ investor, onSuccess }: WithdrawalRequestFormPro
                 <span className="text-gray-700 font-bold uppercase tracking-wide">NET AMOUNT</span>
                 <span className="font-bold text-gray-900">${(parseFloat(amount) * 0.85).toLocaleString()}</span>
               </div>
+              {withdrawalType === 'bank' && selectedBankAccount && (
+                <div className="flex justify-between">
+                  <span className="text-gray-600 font-medium uppercase tracking-wide">DESTINATION BANK</span>
+                  <span className="font-bold text-gray-900">
+                    {selectedBankAccount.bankName || 'Bank Account'}
+                  </span>
+                </div>
+              )}
               {withdrawalType === 'crypto' && selectedCryptoWallet && (
                 <div className="flex justify-between">
                   <span className="text-gray-600 font-medium uppercase tracking-wide">DESTINATION WALLET</span>
