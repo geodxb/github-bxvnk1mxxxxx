@@ -390,41 +390,12 @@ const InvestorProfile = () => {
 
             {/* Withdrawal Request Form - Only show if not marked for deletion */}
             {!isDeletionRequested && (
-              <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
-                <div className="px-6 py-4 border-b border-gray-100">
-                  <h3 className="text-lg font-semibold text-gray-900 uppercase tracking-wide">
-                    Withdrawal Management
-                  </h3>
-                </div>
-                <div className="p-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="bg-gray-50 p-4 rounded-lg border border-gray-100">
-                      <h4 className="font-semibold text-gray-900 mb-2">Bank Withdrawals</h4>
-                      <p className="text-sm text-gray-600 mb-4">
-                        Process traditional bank transfer withdrawals
-                      </p>
-                      <button
-                        onClick={() => navigate('/admin/withdrawals')}
-                        className="px-4 py-2 bg-gray-900 text-white font-medium hover:bg-gray-800 transition-colors rounded-lg"
-                      >
-                        Manage Bank Withdrawals
-                      </button>
-                    </div>
-                    <div className="bg-gray-50 p-4 rounded-lg border border-gray-100">
-                      <h4 className="font-semibold text-gray-900 mb-2">Crypto Withdrawals</h4>
-                      <p className="text-sm text-gray-600 mb-4">
-                        Process cryptocurrency withdrawals to registered wallets
-                      </p>
-                      <button
-                        onClick={() => navigate('/admin/withdrawals')}
-                        className="px-4 py-2 bg-gray-900 text-white font-medium hover:bg-gray-800 transition-colors rounded-lg"
-                      >
-                        Manage Crypto Withdrawals
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <WithdrawalRequestForm
+                investor={investorData}
+                onSuccess={() => {
+                  // Real-time listeners will automatically update
+                }}
+              />
             )}
 
             {/* Refined Commission Information */}
