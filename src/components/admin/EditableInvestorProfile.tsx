@@ -28,6 +28,7 @@ import {
   Mail,
   TrendingUp,
   Building
+  Wallet,
 } from 'lucide-react';
 
 interface EditableInvestorProfileProps {
@@ -477,6 +478,30 @@ const EditableInvestorProfile = ({ investor, onUpdate }: EditableInvestorProfile
                 </div>
               )}
             </div>
+          </div>
+        </Card>
+      )}
+
+      {/* Crypto Wallet Information */}
+      {investor.cryptoWallets && investor.cryptoWallets.length > 0 && (
+        <Card title="REGISTERED CRYPTO WALLETS">
+          <div className="space-y-4">
+            {investor.cryptoWallets.map((wallet) => (
+              <div key={wallet.id} className="bg-gray-50 p-6 rounded-lg border border-gray-200">
+                <div className="flex items-center space-x-3 mb-4">
+                  <Wallet size={20} className="text-gray-600" />
+                  <h4 className="font-bold text-gray-900 uppercase tracking-wide">{wallet.coinType} ({wallet.networkType})</h4>
+                  <span className={`px-2 py-1 text-xs rounded-full font-medium uppercase tracking-wide ${
+                    wallet.verificationStatus === 'approved' ? 'bg-green-100 text-green-800' :
+                    wallet.verificationStatus === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                    'bg-red-100 text-red-800'
+                  }`}>
+                    {wallet.verificationStatus}
+                  </span>
+                </div>
+                <p className="text-sm text-gray-700 font-medium break-all">{wallet.walletAddress}</p>
+              </div>
+            ))}
           </div>
         </Card>
       )}

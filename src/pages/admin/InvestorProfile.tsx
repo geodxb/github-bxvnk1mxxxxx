@@ -7,6 +7,7 @@ import AddCreditModal from '../../components/admin/AddCreditModal';
 import DeleteInvestorModal from '../../components/admin/DeleteInvestorModal';
 import AccountClosureModal from '../../components/admin/AccountClosureModal';
 import ContractDownload from '../../components/admin/ContractDownload';
+import CryptoWalletRegistration from '../../components/admin/CryptoWalletRegistration';
 import SubmitTicketPanel from '../../components/admin/SubmitTicketPanel';
 import BankAccountRegistration from '../../components/admin/BankAccountRegistration';
 import CurrentTicketsDisplay from '../../components/admin/CurrentTicketsDisplay';
@@ -28,7 +29,7 @@ const InvestorProfile = () => {
   const [addCreditModalOpen, setAddCreditModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [closureModalOpen, setClosureModalOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<'overview' | 'transactions' | 'withdrawals' | 'performance' | 'transaction-history'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'transactions' | 'withdrawals' | 'performance' | 'transaction-history' | 'crypto-wallets'>('overview');
   const [proofOfFundsModalOpen, setProofOfFundsModalOpen] = useState(false);
   const [selectedWithdrawal, setSelectedWithdrawal] = useState<any>(null);
   
@@ -518,6 +519,16 @@ const InvestorProfile = () => {
             />
           </Card>
         );
+      case 'crypto-wallets':
+        return (
+          <div className="space-y-6">
+            <CryptoWalletRegistration
+              investor={investorData}
+              onUpdate={refetch}
+            />
+          </div>
+
+        );
       default:
         return null;
     }
@@ -665,6 +676,16 @@ const InvestorProfile = () => {
             }`}
           >
             Performance
+          </button>
+          <button
+            onClick={() => setActiveTab('transaction-history')}
+            className={`py-4 px-2 border-b-2 font-semibold text-sm transition-colors ${
+              activeTab === 'transaction-history'
+                ? 'border-gray-900 text-gray-900'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            Crypto Wallets
           </button>
           <button
             onClick={() => setActiveTab('transaction-history')}
