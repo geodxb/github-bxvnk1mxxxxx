@@ -14,6 +14,42 @@ const ProofOfTransferGenerator = ({ investor, withdrawal, withdrawalRequest }: P
   const [isGenerating, setIsGenerating] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
 
+  // Don't show MT103 generator for crypto withdrawals
+  if (withdrawalRequest?.withdrawalType === 'crypto') {
+    return (
+      <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
+        <div className="px-6 py-4 border-b border-gray-100">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                <Wallet size={20} className="text-purple-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Crypto Transfer Documentation</h3>
+                <p className="text-sm text-gray-600">MT103 documents are not applicable for cryptocurrency transfers</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="p-6">
+          <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
+            <h4 className="font-medium text-purple-800 mb-2">Cryptocurrency Transfer</h4>
+            <p className="text-purple-700 text-sm">
+              This withdrawal was processed as a cryptocurrency transfer. MT103 wire transfer documents 
+              are only generated for traditional bank transfers. For crypto transfers, the transaction 
+              hash serves as the proof of transfer.
+            </p>
+            {withdrawalRequest?.transactionHash && (
+              <div className="mt-4 bg-white p-3 rounded border border-purple-300">
+                <p className="text-sm font-medium text-purple-700 mb-1">Transaction Hash:</p>
+                <p className="font-mono text-xs text-gray-900 break-all">{withdrawalRequest.transactionHash}</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
   const generateTransferHTML = () => {
     const currentDate = new Date().toLocaleDateString('en-US', {
       year: 'numeric',

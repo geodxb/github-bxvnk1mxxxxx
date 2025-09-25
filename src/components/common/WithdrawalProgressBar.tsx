@@ -1083,7 +1083,7 @@ const WithdrawalProgressBar = ({
                               withdrawalRequest.hashGeneratedAt.toDate() : 
                               withdrawalRequest.hashGeneratedAt
                             ).toLocaleDateString()}
-                          </span>
+                      {currentStatus === 'Sent' ? 'BLOCKCHAIN TRANSACTION HASH GENERATED' : 'BLOCKCHAIN TRANSACTION COMPLETED'}
                         )}
                       </div>
                       <p className="font-mono text-green-900 text-xs break-all bg-white p-2 rounded border border-green-300">
@@ -1120,6 +1120,12 @@ const WithdrawalProgressBar = ({
                       <p className="text-blue-700 text-sm mt-1 uppercase tracking-wide">
                         Your crypto withdrawal has been approved. The blockchain transaction hash is being generated and will appear here shortly.
                       </p>
+                        <div>
+                          <span className="text-purple-600 font-medium uppercase tracking-wide">STATUS:</span>
+                          <p className="text-gray-900 font-medium">
+                            {currentStatus === 'Sent' ? 'PENDING CONFIRMATION' : 'TRANSFER COMPLETED'}
+                          </p>
+                        </div>
                     </div>
                   </div>
                 )}
