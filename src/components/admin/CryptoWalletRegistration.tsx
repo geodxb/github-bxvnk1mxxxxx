@@ -533,4 +533,3 @@ const CryptoWalletRegistration = ({ investor, onUpdate }: CryptoWalletRegistrati
 };
 
 export default CryptoWalletRegistration;
-```
