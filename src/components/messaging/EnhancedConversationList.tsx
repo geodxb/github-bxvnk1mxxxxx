@@ -3,19 +3,7 @@ import { motion } from 'framer-motion';
 import { useEnhancedConversations } from '../../hooks/useEnhancedMessages';
 import { useAuth } from '../../contexts/AuthContext';
 import { ConversationMetadata } from '../../types/conversation';
-import { 
-  MessageSquare, 
-  User, 
-  Clock,
-  Search,
-  Plus,
-  Circle,
-  Crown,
-  Shield,
-  Users,
-  AlertTriangle,
-  ArrowUp
-} from 'lucide-react';
+import { MessageSquare, User, Clock, Search, Plus, Circle, Crown, Shield, Users, TriangleAlert as AlertTriangle, ArrowUp } from 'lucide-react';
 
 interface EnhancedConversationListProps {
   selectedConversationId: string | null;
