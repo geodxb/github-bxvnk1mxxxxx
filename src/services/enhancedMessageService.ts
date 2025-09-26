@@ -818,10 +818,10 @@ export class EnhancedMessageService {
   ): () => void {
     console.log('🔄 Setting up real-time listener for enhanced messages in collection:', conversationId);
     
-    // Use simple query without orderBy to avoid index requirements
     const messagesQuery = query(
       collection(db, 'affiliateMessages'),
-      where('conversationId', '==', conversationId)
+      where('conversationId', '==', conversationId),
+      orderBy('createdAt', 'asc')
     );
     
     const unsubscribe = onSnapshot(
@@ -829,20 +829,33 @@ export class EnhancedMessageService {
       (querySnapshot) => {
         try {
           console.log('🔄 Enhanced messages updated in real-time:', querySnapshot.docs.length);
+          console.log('🔍 Looking for messages in conversation:', conversationId);
+          
+          querySnapshot.docs.forEach(doc => {
+            console.log('📨 Found message:', doc.id, doc.data());
+          });
           
           const messages = querySnapshot.docs.map(doc => {
             try {
               const data = doc.data();
               
-              // Validate required fields
-              if (!data.senderId || !data.senderName || (!data.content && (!data.attachments || data.attachments.length === 0))) {
-                console.error('❌ Invalid enhanced message data:', { docId: doc.id, data });
-                return null;
-              }
+              console.log('📨 Processing enhanced message:', doc.id, data);
               
               return {
                 id: doc.id,
                 ...data,
+                conversationId: data.conversationId || conversationId,
+                senderId: data.senderId || '',
+                senderName: data.senderName || 'Unknown User',
+                senderRole: data.senderRole || 'investor',
+                content: data.content || '',
+                replyTo: data.replyTo || null,
+                priority: data.priority || 'medium',
+                status: data.status || 'sent',
+                department: data.department || null,
+                isEscalation: data.isEscalation || false,
+                escalationReason: data.escalationReason || null,
+                messageType: data.messageType || 'text',
                 timestamp: data.timestamp?.toDate() || new Date(),
                 editedAt: data.editedAt?.toDate() || null,
                 readBy: data.readBy?.map((read: any) => ({
@@ -855,9 +868,9 @@ export class EnhancedMessageService {
               console.error('❌ Error processing enhanced message document:', docError, { docId: doc.id });
               return null;
             }
-          }).filter(Boolean) as EnhancedMessage[];
+          }).filter(msg => msg !== null) as EnhancedMessage[];
           
-          // Sort messages by timestamp in JavaScript
+          // Sort messages by timestamp
           const sortedMessages = messages.sort((a, b) => 
             a.timestamp.getTime() - b.timestamp.getTime()
           );

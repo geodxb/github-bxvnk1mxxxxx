@@ -316,7 +316,7 @@ export class MessageService {
     const messagesQuery = query(
       collection(db, 'affiliateMessages'),
       where('conversationId', '==', conversationId),
-      orderBy('timestamp', 'asc')
+      orderBy('createdAt', 'asc')
     );
     
     const unsubscribe = onSnapshot(
@@ -329,17 +329,24 @@ export class MessageService {
             try {
               const data = doc.data();
               
-              // Validate required fields
-              if (!data.senderId || (!data.content && (!data.attachments || data.attachments.length === 0))) {
-                console.error('❌ Invalid regular message data:', { docId: doc.id, data });
-                return null;
-              }
+              console.log('📨 Processing message:', doc.id, data);
               
               return {
                 id: doc.id,
                 ...data,
+                senderId: data.senderId || '',
                 senderName: data.senderName || 'Unknown User',
                 senderRole: data.senderRole || 'investor',
+                content: data.content || '',
+                conversationId: data.conversationId || conversationId,
+                replyTo: data.replyTo || null,
+                priority: data.priority || 'medium',
+                status: data.status || 'sent',
+                department: data.department || null,
+                isEscalation: data.isEscalation || false,
+                escalationReason: data.escalationReason || null,
+                readBy: data.readBy || [],
+                messageType: data.messageType || 'text',
                 timestamp: data.timestamp?.toDate() || new Date(),
                 createdAt: data.createdAt?.toDate() || new Date(),
                 attachments: data.attachments || []
@@ -348,7 +355,7 @@ export class MessageService {
               console.error('❌ Error processing regular message document:', docError, { docId: doc.id });
               return null;
             }
-          }).filter(Boolean) as AffiliateMessage[];
+          }).filter(msg => msg !== null) as AffiliateMessage[];
           
           console.log('✅ Regular messages processed:', messages.length);
           callback(messages);
