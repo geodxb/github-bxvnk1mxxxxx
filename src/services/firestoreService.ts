@@ -1250,7 +1250,6 @@ export class FirestoreService {
         where('investorId', '==', investorId)
       );
       
-        requestedBy: 'investor',
       let querySnapshot = await getDocs(categorizationQuery);
       
       if (querySnapshot.empty) {
