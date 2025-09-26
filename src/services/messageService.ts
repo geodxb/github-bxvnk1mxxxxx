@@ -316,7 +316,7 @@ export class MessageService {
     const messagesQuery = query(
       collection(db, 'affiliateMessages'),
       where('conversationId', '==', conversationId),
-      orderBy('timestamp', 'asc')
+      orderBy('createdAt', 'asc')
     );
     
     const unsubscribe = onSnapshot(
@@ -325,13 +325,26 @@ export class MessageService {
         try {
           console.log('🔄 Regular messages updated in real-time:', querySnapshot.docs.length);
           
+          // Log each message found
+          querySnapshot.docs.forEach((doc, index) => {
+            const data = doc.data();
+            console.log(`📨 Message ${index + 1} (${doc.id}):`, {
+              senderId: data.senderId,
+              senderName: data.senderName,
+              senderRole: data.senderRole,
+              content: data.content?.substring(0, 50) + '...',
+              timestamp: data.timestamp,
+              createdAt: data.createdAt
+            });
+          });
+          
           const messages = querySnapshot.docs.map(doc => {
             try {
               const data = doc.data();
               
-              // Validate required fields
-              if (!data.senderId || (!data.content && (!data.attachments || data.attachments.length === 0))) {
-                console.error('❌ Invalid regular message data:', { docId: doc.id, data });
+              // Basic validation - only check for senderId
+              if (!data.senderId) {
+                console.error('❌ Message missing senderId:', { docId: doc.id });
                 return null;
               }
               
@@ -339,10 +352,17 @@ export class MessageService {
                 id: doc.id,
                 ...data,
                 senderName: data.senderName || 'Unknown User',
-                senderRole: data.senderRole || 'investor',
-                timestamp: data.timestamp?.toDate() || new Date(),
+                senderRole: data.senderRole || 'investor', 
+                content: data.content || '',
+                timestamp: data.timestamp?.toDate() || data.createdAt?.toDate() || new Date(),
                 createdAt: data.createdAt?.toDate() || new Date(),
-                attachments: data.attachments || []
+                attachments: data.attachments || [],
+                conversationId: data.conversationId || conversationId,
+                priority: data.priority || 'medium',
+                status: data.status || 'sent',
+                department: data.department || null,
+                replyTo: data.replyTo || null,
+                readBy: data.readBy || []
               };
             } catch (docError) {
               console.error('❌ Error processing regular message document:', docError, { docId: doc.id });
@@ -351,6 +371,15 @@ export class MessageService {
           }).filter(Boolean) as AffiliateMessage[];
           
           console.log('✅ Regular messages processed:', messages.length);
+          messages.forEach((msg, index) => {
+            console.log(`📨 Processed message ${index + 1}:`, {
+              id: msg.id,
+              sender: `${msg.senderName} (${msg.senderRole})`,
+              content: msg.content?.substring(0, 50) + '...',
+              timestamp: msg.timestamp
+            });
+          });
+          
           callback(messages);
         } catch (error) {
           console.error('❌ Error in regular messages snapshot listener:', error);
@@ -359,6 +388,11 @@ export class MessageService {
       },
       (error) => {
         console.error('❌ Real-time listener failed for messages:', error);
+        console.error('❌ Query details:', {
+          collection: 'affiliateMessages',
+          conversationId,
+          orderBy: 'createdAt'
+        });
         callback([]);
       }
     );
@@ -475,14 +509,14 @@ export class MessageService {
       console.log('👑 Governor accessing ALL conversations for oversight');
       conversationsQuery = query(
         collection(db, 'conversations'),
-        orderBy('updatedAt', 'desc')
+        orderBy('createdAt', 'desc')
       );
     } else {
       // Regular users only see their own conversations
       conversationsQuery = query(
         collection(db, 'conversations'),
         where('participants', 'array-contains', userId),
-        orderBy('updatedAt', 'desc')
+        orderBy('createdAt', 'desc')
       );
     }
     
@@ -490,20 +524,34 @@ export class MessageService {
       conversationsQuery,
       (querySnapshot) => {
         console.log(`🔄 Conversations updated in real-time for ${userRole === 'governor' ? 'GOVERNOR (ALL)' : 'USER'}: ${querySnapshot.docs.length} conversations`);
+        
+        // Log each conversation found
+        querySnapshot.docs.forEach((doc, index) => {
+          const data = doc.data();
+          console.log(`📋 Conversation ${index + 1} (${doc.id}):`, {
+            title: data.title,
+            participants: data.participants,
+            participantDetails: data.participantDetails,
+            lastMessage: data.lastMessage,
+            department: data.department,
+            recipientType: data.recipientType
+          });
+        });
+        
         const conversations = querySnapshot.docs.map(doc => {
           const data = doc.data();
           
           // Handle new structure with lastMessage as object
           let lastMessage = '';
           let lastMessageSender = '';
-          let lastMessageTime = data.updatedAt;
+          let lastMessageTime = data.updatedAt || data.createdAt;
           
           if (data.lastMessage) {
             if (typeof data.lastMessage === 'object' && data.lastMessage.content) {
               // New structure: lastMessage is an object
               lastMessage = data.lastMessage.content;
               lastMessageSender = data.lastMessage.senderName || '';
-              lastMessageTime = data.lastMessage.createdAt || data.updatedAt;
+              lastMessageTime = data.lastMessage.createdAt || data.updatedAt || data.createdAt;
             } else if (typeof data.lastMessage === 'string') {
               // Legacy structure: lastMessage is a string
               lastMessage = data.lastMessage;
@@ -511,28 +559,48 @@ export class MessageService {
             }
           }
           
+          // Extract participant names from participantDetails if available
+          let participantNames = [];
+          if (data.participantDetails && Array.isArray(data.participantDetails)) {
+            participantNames = data.participantDetails.map((p: any) => p.name || p.id);
+          } else if (data.participantNames && Array.isArray(data.participantNames)) {
+            participantNames = data.participantNames;
+          } else if (data.participants && Array.isArray(data.participants)) {
+            participantNames = data.participants;
+          }
+          
           return {
             id: doc.id,
             participants: data.participants || [],
-            participantNames: data.participantDetails?.map((p: any) => p.name) || 
-                             data.participantNames || 
-                             data.participants || [],
+            participantNames: participantNames,
             createdAt: data.createdAt?.toDate() || new Date(),
-            lastActivity: lastMessageTime?.toDate() || new Date(),
+            lastActivity: lastMessageTime?.toDate() || data.updatedAt?.toDate() || data.createdAt?.toDate() || new Date(),
             lastMessage: lastMessage,
             lastMessageSender: lastMessageSender,
             lastMessageTime: lastMessageTime?.toDate() || new Date(),
             adminId: data.adminId || '',
             investorId: data.investorId || data.affiliateId || '',
-            title: data.title || '',
+            title: data.title || 'Conversation',
             department: data.department || null,
             urgency: data.urgency || 'low',
             isActive: data.isActive !== false,
             recipientType: data.recipientType || 'admin',
-            updatedAt: data.updatedAt?.toDate() || new Date()
+            updatedAt: data.updatedAt?.toDate() || data.createdAt?.toDate() || new Date()
           };
+        }).filter(conv => {
+          // For governor, show ALL conversations
+          if (userRole === 'governor') {
+            console.log(`👑 Governor viewing conversation: ${conv.id} - ${conv.title}`);
+            return true;
+          }
+          
+          // For admin/investor, show only conversations they participate in
+          const isParticipant = conv.participants.includes(userId);
+          console.log(`👤 User ${userId} participant check for ${conv.id}:`, isParticipant);
+          return isParticipant;
         }) as Conversation[];
         
+        console.log(`✅ Final conversations for ${userRole || 'user'}:`, conversations.length);
         callback(conversations);
       },
       (error) => {
