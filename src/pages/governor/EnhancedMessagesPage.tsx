@@ -6,7 +6,7 @@ import { EnhancedMessageService } from '../../services/enhancedMessageService';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAvailableRecipients } from '../../hooks/useEnhancedMessages';
 import { ConversationMetadata } from '../../types/conversation';
-import { MessageSquare, Send, Users, Shield, Building, AlertTriangle, DollarSign, User, Crown, Eye } from 'lucide-react';
+import { MessageSquare, Send, Users, Shield, Building, TriangleAlert as AlertTriangle, DollarSign, User, Crown, Eye } from 'lucide-react';
 
 const GovernorEnhancedMessagesPage = () => {
   const { user } = useAuth();
