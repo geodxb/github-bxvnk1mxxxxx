@@ -139,6 +139,20 @@ const GovernorWithdrawalsPage = () => {
     setIsLoading(prev => ({ ...prev, [requestId]: true }));
     
     try {
+      // If changing status to pending, clear any existing transaction hash
+      if (status.toLowerCase() === 'pending') {
+        const request = withdrawalRequests.find(req => req.id === requestId);
+        if (request && request.transactionHash) {
+          console.log('🔄 Clearing transaction hash for withdrawal:', requestId);
+          await FirestoreService.updateDocument('withdrawalRequests', requestId, {
+            transactionHash: null,
+            hashGeneratedAt: null,
+            hashGeneratedBy: null,
+            hashStatus: null
+          });
+        }
+      }
+      
       // Update withdrawal request with new status and comment
       await FirestoreService.updateWithdrawalRequest(requestId, status.toLowerCase(), user?.id || 'GOVERNOR', comment);
       
