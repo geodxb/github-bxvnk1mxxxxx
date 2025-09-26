@@ -112,6 +112,7 @@ export interface WithdrawalRequest {
   processedBy?: string;
   processedAt?: Date | null;
   approvalDate?: Date | null;
+  requestedBy: string; // Always "investor" to indicate this was requested by investor
   
   // New fields for crypto withdrawals
   withdrawalType: 'bank' | 'crypto';

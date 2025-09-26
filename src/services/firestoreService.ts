@@ -654,6 +654,7 @@ export class FirestoreService {
         amount,
         date: new Date().toISOString().split('T')[0],
         status: 'Pending',
+        requestedBy: 'investor',
         processedBy: null,
         processedAt: null,
         approvalDate: null,
@@ -1249,6 +1250,7 @@ export class FirestoreService {
         where('investorId', '==', investorId)
       );
       
+        requestedBy: 'investor',
       let querySnapshot = await getDocs(categorizationQuery);
       
       if (querySnapshot.empty) {
