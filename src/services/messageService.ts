@@ -470,26 +470,37 @@ export class MessageService {
     
     let conversationsQuery;
     
-    if (userRole === 'governor') {
-      // Governor can see ALL conversations
-      console.log('👑 Governor accessing ALL conversations for oversight');
-      conversationsQuery = query(
-        collection(db, 'conversations'),
-        orderBy('updatedAt', 'desc')
-      );
-    } else {
-      // Regular users only see their own conversations
-      conversationsQuery = query(
-        collection(db, 'conversations'),
-        where('participants', 'array-contains', userId),
-        orderBy('updatedAt', 'desc')
-      );
-    }
+    // ALWAYS fetch ALL conversations for debugging - will filter in frontend if needed
+    console.log('🔍 Fetching ALL conversations for debugging conversation ID: BBZTQC4luu3mFfwEs1EY');
+    conversationsQuery = query(
+      collection(db, 'conversations'),
+      orderBy('updatedAt', 'desc')
+    );
     
     const unsubscribe = onSnapshot(
       conversationsQuery,
       (querySnapshot) => {
-        console.log(`🔄 Conversations updated in real-time for ${userRole === 'governor' ? 'GOVERNOR (ALL)' : 'USER'}: ${querySnapshot.docs.length} conversations`);
+        console.log(`🔄 ALL conversations fetched: ${querySnapshot.docs.length} total conversations`);
+        
+        // Log each conversation for debugging
+        querySnapshot.docs.forEach((doc, index) => {
+          const data = doc.data();
+          console.log(`📋 Conversation ${index + 1} (${doc.id}):`, {
+            id: doc.id,
+            title: data.title,
+            participants: data.participants,
+            participantDetails: data.participantDetails,
+            department: data.department,
+            lastMessage: data.lastMessage,
+            updatedAt: data.updatedAt?.toDate()
+          });
+          
+          // Special logging for the missing conversation
+          if (doc.id === 'BBZTQC4luu3mFfwEs1EY') {
+            console.log('🎯 FOUND MISSING CONVERSATION BBZTQC4luu3mFfwEs1EY:', JSON.stringify(data, null, 2));
+          }
+        });
+        
         const conversations = querySnapshot.docs.map(doc => {
           const data = doc.data();
           
@@ -533,7 +544,21 @@ export class MessageService {
           };
         }) as Conversation[];
         
-        callback(conversations);
+        console.log(`✅ Processed ${conversations.length} conversations total`);
+        
+        // Filter conversations based on user role AFTER fetching all
+        let filteredConversations = conversations;
+        if (userRole !== 'governor') {
+          // For non-governors, filter to only show conversations they participate in
+          filteredConversations = conversations.filter(conv => {
+            const isParticipant = conv.participants.includes(userId);
+            console.log(`🔍 Conversation ${conv.id}: User ${userId} is participant? ${isParticipant}`);
+            return isParticipant;
+          });
+          console.log(`🔍 Filtered to ${filteredConversations.length} conversations for user ${userId}`);
+        }
+        
+        callback(filteredConversations);
       },
       (error) => {
         console.error('❌ Real-time listener failed for conversations:', error);

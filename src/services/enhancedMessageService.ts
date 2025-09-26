@@ -642,29 +642,35 @@ export class EnhancedMessageService {
   // Real-time listener for enhanced conversations
   static subscribeToEnhancedConversations(
     userId: string,
+    userRole: string,
     callback: (conversations: ConversationMetadata[]) => void
   ): () => void {
-    console.log('🔄 Setting up real-time listener for enhanced conversations for userId:', userId);
+    console.log('🔄 Setting up real-time listener for enhanced conversations for userId:', userId, 'Role:', userRole);
     
-    // Query BOTH conversations and affiliateMessages collections to find all conversations
+    // Query ALL conversations to find all conversations including investor-created ones
     const conversationsQuery = query(collection(db, 'conversations'));
     
     const unsubscribe = onSnapshot(
       conversationsQuery,
       (querySnapshot) => {
-        console.log('🔄 RAW Firebase conversations snapshot:', querySnapshot.docs.length, 'documents found');
+        console.log('🔄 ALL Firebase conversations snapshot:', querySnapshot.docs.length, 'documents found');
         
         // Log each raw document
         querySnapshot.docs.forEach((doc, index) => {
           const data = doc.data();
-          console.log(`📄 Document ${index + 1}:`, {
+          console.log(`📄 Enhanced Document ${index + 1} (${doc.id}):`, {
             id: doc.id,
             title: data.title,
             participants: data.participants,
-            participantNames: data.participantNames,
+            participantDetails: data.participantDetails,
             lastMessage: data.lastMessage,
-            lastActivity: data.lastActivity
+            updatedAt: data.updatedAt
           });
+          
+          // Special logging for the missing conversation
+          if (doc.id === 'BBZTQC4luu3mFfwEs1EY') {
+            console.log('🎯 ENHANCED: FOUND MISSING CONVERSATION BBZTQC4luu3mFfwEs1EY:', JSON.stringify(data, null, 2));
+          }
         });
         
         if (querySnapshot.docs.length === 0) {
@@ -676,17 +682,19 @@ export class EnhancedMessageService {
         const allConversations = querySnapshot.docs.map(doc => {
           const data = doc.data();
           
-          console.log(`🔍 Processing conversation ${doc.id}:`, data);
+          console.log(`🔍 Processing enhanced conversation ${doc.id}:`, data);
           
           // Ensure lastMessage and lastMessageSender are always strings
           let lastMessage = '';
           let lastMessageSender = '';
+          let lastActivity = data.updatedAt?.toDate() || new Date();
           
           if (data.lastMessage) {
             if (typeof data.lastMessage === 'object' && data.lastMessage.content) {
               // If lastMessage is an object, extract the content
               lastMessage = data.lastMessage.content;
               lastMessageSender = data.lastMessage.senderName || data.lastMessageSender || '';
+              lastActivity = data.lastMessage.createdAt?.toDate() || data.updatedAt?.toDate() || new Date();
             } else if (typeof data.lastMessage === 'string') {
               // If lastMessage is already a string, use it directly
               lastMessage = data.lastMessage;
@@ -694,17 +702,45 @@ export class EnhancedMessageService {
             }
           }
           
+          // Extract participant names from participantDetails or fallback to participants array
+          let participantNames = [];
+          if (data.participantDetails && Array.isArray(data.participantDetails)) {
+            participantNames = data.participantDetails.map((p: any) => p.name || 'Unknown');
+          } else if (data.participantNames && Array.isArray(data.participantNames)) {
+            participantNames = data.participantNames;
+          } else if (data.participants && Array.isArray(data.participants)) {
+            participantNames = data.participants;
+          }
+          
+          // Extract participants array
+          let participants = [];
+          if (data.participantDetails && Array.isArray(data.participantDetails)) {
+            participants = data.participantDetails.map((p: any) => ({
+              id: p.id || '',
+              name: p.name || 'Unknown',
+              role: p.role || 'investor',
+              joinedAt: new Date()
+            }));
+          } else if (data.participants && Array.isArray(data.participants)) {
+            participants = data.participants.map((id: string) => ({
+              id,
+              name: 'Unknown',
+              role: 'investor',
+              joinedAt: new Date()
+            }));
+          }
+          
           return {
             id: doc.id,
-            type: data.type || 'admin_investor', // Changed 'admin_affiliate' to 'admin_investor'
-            title: data.title || 'Conversation',
+            type: data.type || 'admin_investor',
+            title: data.title || 'Support Request',
             description: data.description,
-            participants: data.participants || [],
-            participantNames: data.participantNames || [],
-            participantRoles: data.participantRoles || [],
+            participants: participants,
+            participantNames: participantNames,
+            participantRoles: participants.map((p: any) => p.role),
             createdBy: data.createdBy || '',
             createdAt: data.createdAt?.toDate() || new Date(),
-            lastActivity: data.lastActivity?.toDate() || new Date(),
+            lastActivity: lastActivity,
             lastMessage: lastMessage,
             lastMessageSender: lastMessageSender,
             isEscalated: data.isEscalated || false,
@@ -714,36 +750,47 @@ export class EnhancedMessageService {
             status: data.status || 'active',
             priority: data.priority || 'medium',
             tags: data.tags || [],
-            department: data.department,
+            department: data.department || null,
             auditTrail: data.auditTrail?.map((entry: any) => ({
               ...entry,
               timestamp: entry.timestamp?.toDate() || new Date()
             })) || []
           };
-        }).filter(conv => 
-          conv.participants.some((p: ConversationParticipant) => p.id === userId)
-        ) as ConversationMetadata[];
+        }) as ConversationMetadata[];
         
-        console.log('📊 Processed conversations:', allConversations.length);
+        console.log('📊 Processed enhanced conversations:', allConversations.length);
         allConversations.forEach((conv, index) => {
-          console.log(`📋 Conversation ${index + 1}:`, {
+          console.log(`📋 Enhanced Conversation ${index + 1}:`, {
             id: conv.id,
             title: conv.title,
             participants: conv.participants,
             participantNames: conv.participantNames,
-            lastMessage: conv.lastMessage
+            lastMessage: conv.lastMessage,
+            department: conv.department
           });
         });
         
-        // For now, show ALL conversations to debug the issue
-        console.log('🔄 Showing ALL conversations for debugging');
+        // Filter conversations based on user role
+        let filteredConversations = allConversations;
+        if (userRole !== 'governor') {
+          // For non-governors, filter to only show conversations they participate in
+          filteredConversations = allConversations.filter(conv => {
+            const isParticipant = conv.participants.some((p: any) => p.id === userId);
+            console.log(`🔍 Enhanced Conversation ${conv.id}: User ${userId} is participant? ${isParticipant}`);
+            return isParticipant;
+          });
+          console.log(`🔍 Enhanced: Filtered to ${filteredConversations.length} conversations for user ${userId}`);
+        } else {
+          console.log('👑 Governor accessing ALL enhanced conversations for oversight');
+        }
+        
         const sortedConversations = allConversations.sort((a, b) => 
           b.lastActivity.getTime() - a.lastActivity.getTime()
         );
         
-        console.log('✅ Final sorted conversations:', sortedConversations.length);
+        console.log('✅ Final sorted enhanced conversations:', sortedConversations.length);
         sortedConversations.forEach((conv, index) => {
-          console.log(`📋 Final conversation ${index + 1}:`, {
+          console.log(`📋 Final enhanced conversation ${index + 1}:`, {
             id: conv.id,
             title: conv.title,
             participants: conv.participants,
@@ -753,7 +800,7 @@ export class EnhancedMessageService {
           });
         });
         
-        callback(sortedConversations);
+        callback(filteredConversations);
       },
       (error) => {
         console.error('❌ Real-time listener failed for conversations:', error);

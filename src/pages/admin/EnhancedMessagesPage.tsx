@@ -10,6 +10,7 @@ import { MessageSquare, Send, Users, Shield, Building, AlertTriangle, DollarSign
 
 const EnhancedMessagesPage = () => {
   const { user } = useAuth();
+  const { conversations: enhancedConversations } = useEnhancedConversations(user?.id || '', user?.role);
   const { recipients, loading: recipientsLoading } = useAvailableRecipients(
     user?.id || '', 
     user?.role === 'admin' ? 'admin' : user?.role === 'governor' ? 'governor' : 'affiliate'
