@@ -106,48 +106,54 @@ export class MessageService {
   static async getOrCreateConversation(
     userId: string, 
     userName: string, 
-    userRole: 'admin' | 'investor' | 'governor', // Changed 'affiliate' to 'investor'
+    userRole: 'admin' | 'investor' | 'governor',
     targetUserId?: string
   ): Promise<string> {
     try {
       console.log('🔍 Finding or creating conversation for:', userName);
       
-      // Look for existing conversation with specific target if provided
-      let conversationsQuery;
-      if (targetUserId) {
-        conversationsQuery = query(
-          collection(db, 'conversations'),
-          where('participants', 'array-contains-any', [userId, targetUserId])
-        );
-      } else {
-        conversationsQuery = query(
-          collection(db, 'conversations'),
-          where('participants', 'array-contains', userId)
-        );
-      }
+      // Look for existing conversation that includes this user
+      const conversationsQuery = query(
+        collection(db, 'conversations'),
+        where('participants', 'array-contains', userId)
+      );
       
       const conversationsSnapshot = await getDocs(conversationsQuery);
       
-      // If targeting specific user, find conversation with both participants
-      if (targetUserId && !conversationsSnapshot.empty) {
-        const existingConversation = conversationsSnapshot.docs.find(doc => {
-          const data = doc.data();
-          return data.participants.includes(userId) && data.participants.includes(targetUserId);
-        });
+      // Check for existing conversation
+      if (!conversationsSnapshot.empty) {
+        let existingConversation;
+        
+        if (targetUserId) {
+          // Find conversation with both participants
+          existingConversation = conversationsSnapshot.docs.find(doc => {
+            const data = doc.data();
+            return data.participants.includes(userId) && data.participants.includes(targetUserId);
+          });
+        } else {
+          // For investor role, find conversation with admin
+          if (userRole === 'investor') {
+            existingConversation = conversationsSnapshot.docs.find(doc => {
+              const data = doc.data();
+              const participantDetails = data.participantDetails || [];
+              return participantDetails.some((p: any) => p.role === 'admin');
+            });
+          } else {
+            // For admin/governor, use first available conversation
+            existingConversation = conversationsSnapshot.docs[0];
+          }
+        }
         
         if (existingConversation) {
           console.log('✅ Found existing conversation:', existingConversation.id);
           return existingConversation.id;
         }
-      } else if (!targetUserId && !conversationsSnapshot.empty) {
-        const existingConversation = conversationsSnapshot.docs[0];
-        console.log('✅ Found existing conversation:', existingConversation.id);
-        return existingConversation.id;
       }
       
       // Create new conversation
       let otherParticipantId = 'admin_fallback';
       let otherParticipantName = 'Admin';
+      let otherParticipantRole = 'admin';
       
       if (targetUserId) {
         // Use the specific target user
@@ -156,6 +162,24 @@ export class MessageService {
         const targetUserDoc = await getDoc(doc(db, 'users', targetUserId));
         if (targetUserDoc.exists()) {
           otherParticipantName = targetUserDoc.data().name || 'User';
+          otherParticipantRole = targetUserDoc.data().role || 'admin';
+        }
+      } else if (userRole === 'investor') {
+        // Investor needs to connect to admin
+        const adminQuery = query(
+          collection(db, 'users'),
+          where('role', '==', 'admin'),
+          where('email', '==', 'crisdoraodxb@gmail.com')
+        );
+        
+        const adminSnapshot = await getDocs(adminQuery);
+        
+        if (!adminSnapshot.empty) {
+          const adminDoc = adminSnapshot.docs[0];
+          otherParticipantId = adminDoc.id;
+          otherParticipantName = adminDoc.data().name || 'Cristian Dorao';
+          otherParticipantRole = 'admin';
+          console.log('✅ Found admin user for investor conversation:', otherParticipantId, otherParticipantName);
         }
       } else {
         // Get the default admin user
@@ -171,20 +195,47 @@ export class MessageService {
           const adminDoc = adminSnapshot.docs[0];
           otherParticipantId = adminDoc.id;
           otherParticipantName = adminDoc.data().name || 'Cristian Dorao';
+          otherParticipantRole = 'admin';
           console.log('✅ Found admin user:', otherParticipantId, otherParticipantName);
         } else {
           console.log('⚠️ Admin user not found, using fallback');
         }
       }
       
+      // Create participant details for the new structure
+      const participantDetails = [
+        {
+          id: userId,
+          name: userName,
+          role: userRole
+        },
+        {
+          id: otherParticipantId,
+          name: otherParticipantName,
+          role: otherParticipantRole
+        }
+      ];
+      
       const conversationData = {
         participants: [userId, otherParticipantId],
         participantNames: [userName, otherParticipantName],
-        participantRoles: [userRole, targetUserId ? 'governor' : 'admin'],
-        lastMessage: '',
-        lastMessageTime: serverTimestamp(),
+        participantDetails: participantDetails,
+        lastMessage: {
+          content: '',
+          senderId: '',
+          senderName: '',
+          senderRole: userRole,
+          createdAt: serverTimestamp(),
+          id: '',
+          attachments: []
+        },
+        title: userRole === 'investor' ? 'Support Request' : 'Admin Communication',
+        department: userRole === 'investor' ? 'General Support' : 'Admin',
+        isActive: true,
+        urgency: 'low',
+        recipientType: userRole === 'investor' ? 'admin' : 'investor',
         adminId: userRole === 'admin' ? userId : otherParticipantId,
-        affiliateId: userRole === 'admin' ? otherParticipantId : userId,
+        investorId: userRole === 'investor' ? userId : otherParticipantId,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
       };
@@ -438,7 +489,6 @@ export class MessageService {
       
       await updateDoc(docRef, {
         lastMessage: messageObject,
-        lastMessageTime: serverTimestamp(),
         updatedAt: serverTimestamp()
       });
     } catch (error) {
