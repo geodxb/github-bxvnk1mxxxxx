@@ -77,40 +77,34 @@ const WithdrawalProgressBar = ({
 
     // Determine stage and progress based on status and withdrawal type
     if (isCryptoWithdrawal) {
-      // Crypto withdrawal flow: Pending -> Approved -> Sent -> Credited
-      switch (currentStatus) {
+      // Crypto withdrawal flow: pending -> approved -> sent -> credited
+      switch (currentStatus.toLowerCase()) {
         case 'pending':
-        case 'Pending':
           setCurrentStage(1);
           setProgressPercentage(25);
           setEstimatedCompletion(addBusinessDays(submissionDateTime, 2)); // 2 business days for approval
           break;
         case 'approved':
-        case 'Approved':
           setCurrentStage(2);
           setProgressPercentage(50);
           setEstimatedCompletion(addBusinessDays(approvalDate || submissionDateTime, 1)); // 1 business day to send to blockchain
           break;
         case 'sent':
-        case 'Sent':
           setCurrentStage(3);
           setProgressPercentage(75);
           setEstimatedCompletion(addBusinessDays(new Date(), 1)); // 1 business day for blockchain confirmation
           break;
         case 'credited':
-        case 'Credited':
           setCurrentStage(4);
           setProgressPercentage(100);
           setEstimatedCompletion(creditDate || now);
           break;
         case 'rejected':
-        case 'Rejected':
           setCurrentStage(5);
           setProgressPercentage(100);
           setEstimatedCompletion(rejectionDate || now);
           break;
         case 'refunded':
-        case 'Refunded':
           setCurrentStage(6);
           setProgressPercentage(100);
           setEstimatedCompletion(now);
@@ -120,34 +114,29 @@ const WithdrawalProgressBar = ({
           setProgressPercentage(25);
       }
     } else {
-      // Bank withdrawal flow: Pending -> Approved -> Credited
-      switch (currentStatus) {
+      // Bank withdrawal flow: pending -> approved -> credited
+      switch (currentStatus.toLowerCase()) {
         case 'pending':
-        case 'Pending':
           setCurrentStage(1);
           setProgressPercentage(33);
           setEstimatedCompletion(addBusinessDays(submissionDateTime, 3)); // 3 business days for approval
           break;
         case 'approved':
-        case 'Approved':
           setCurrentStage(2);
           setProgressPercentage(66);
           setEstimatedCompletion(addBusinessDays(approvalDate || submissionDateTime, 3)); // 3 business days for transfer
           break;
         case 'credited':
-        case 'Credited':
           setCurrentStage(3);
           setProgressPercentage(100);
           setEstimatedCompletion(creditDate || now);
           break;
         case 'rejected':
-        case 'Rejected':
           setCurrentStage(4);
           setProgressPercentage(100);
           setEstimatedCompletion(rejectionDate || now);
           break;
         case 'refunded':
-        case 'Refunded':
           setCurrentStage(5);
           setProgressPercentage(100);
           setEstimatedCompletion(now);
@@ -160,31 +149,25 @@ const WithdrawalProgressBar = ({
   }, [currentStatus, submissionDate, approvalDate, creditDate, rejectionDate, isCryptoWithdrawal]);
 
   const getProgressBarColor = () => {
-    if (currentStatus === 'rejected' || currentStatus === 'Rejected') return 'bg-red-500';
-    if (currentStatus === 'refunded' || currentStatus === 'Refunded') return 'bg-purple-500';
-    if (currentStatus === 'credited' || currentStatus === 'Credited') return 'bg-green-500';
+    if (currentStatus.toLowerCase() === 'rejected') return 'bg-red-500';
+    if (currentStatus.toLowerCase() === 'refunded') return 'bg-purple-500';
+    if (currentStatus.toLowerCase() === 'credited') return 'bg-green-500';
     return 'bg-blue-500';
   };
 
   const getStatusIcon = () => {
-    switch (currentStatus) {
+    switch (currentStatus.toLowerCase()) {
       case 'pending':
-      case 'Pending':
         return <Clock size={20} className="text-yellow-600" />;
       case 'approved':
-      case 'Approved':
         return <CheckCircle size={20} className="text-green-600" />;
       case 'sent':
-      case 'Sent':
         return <Send size={20} className="text-blue-600" />;
       case 'credited':
-      case 'Credited':
         return <CheckCircle size={20} className="text-green-600" />;
       case 'rejected':
-      case 'Rejected':
         return <XCircle size={20} className="text-red-600" />;
       case 'refunded':
-      case 'Refunded':
         return <TrendingUp size={20} className="text-purple-600" />;
       default:
         return <Clock size={20} className="text-gray-600" />;
@@ -193,23 +176,20 @@ const WithdrawalProgressBar = ({
 
   const getStatusMessage = () => {
     if (isCryptoWithdrawal) {
-      switch (currentStatus) {
+      switch (currentStatus.toLowerCase()) {
         case 'pending':
-        case 'Pending':
           return {
             title: 'Crypto Withdrawal Submitted',
             message: 'Your cryptocurrency withdrawal request is being reviewed by the Governor.',
             detail: `Estimated approval time: ${estimatedCompletion?.toLocaleDateString()} (${Math.max(0, 2 - businessDaysElapsed)} business days remaining)`
           };
         case 'approved':
-        case 'Approved':
           return {
             title: 'Crypto Withdrawal Approved',
             message: 'Your withdrawal has been approved and is being prepared for blockchain transfer.',
             detail: 'The transaction will be sent to the blockchain within 1 business day.'
           };
         case 'sent':
-        case 'Sent':
           return {
             title: 'Sent to Blockchain',
             message: 'Your crypto withdrawal has been sent to the blockchain network.',
@@ -218,7 +198,6 @@ const WithdrawalProgressBar = ({
               : 'Waiting for blockchain confirmation...'
           };
         case 'credited':
-        case 'Credited':
           return {
             title: 'Transfer Complete',
             message: 'Your cryptocurrency has been successfully transferred to your wallet.',
@@ -227,14 +206,12 @@ const WithdrawalProgressBar = ({
               : 'Transfer confirmed on blockchain.'
           };
         case 'rejected':
-        case 'Rejected':
           return {
             title: 'Withdrawal Rejected',
             message: 'Your crypto withdrawal request has been rejected.',
             detail: rejectionReason || 'Please contact support for more information.'
           };
         case 'refunded':
-        case 'Refunded':
           return {
             title: 'Withdrawal Refunded',
             message: 'The withdrawal amount has been credited back to your account.',
@@ -249,23 +226,20 @@ const WithdrawalProgressBar = ({
       }
     } else {
       // Bank withdrawal messages
-      switch (currentStatus) {
+      switch (currentStatus.toLowerCase()) {
         case 'pending':
-        case 'Pending':
           return {
             title: 'Bank Withdrawal Submitted',
             message: 'Your bank withdrawal request is being reviewed by the Governor.',
             detail: `Estimated approval time: ${estimatedCompletion?.toLocaleDateString()} (${Math.max(0, 3 - businessDaysElapsed)} business days remaining)`
           };
         case 'approved':
-        case 'Approved':
           return {
             title: 'Withdrawal Approved',
             message: 'Your withdrawal has been approved and is being processed for bank transfer.',
             detail: 'Bank transfer will be initiated within 1-3 business days.'
           };
         case 'credited':
-        case 'Credited':
           return {
             title: 'Transfer Complete',
             message: 'Your funds have been successfully transferred to your bank account.',
@@ -274,14 +248,12 @@ const WithdrawalProgressBar = ({
               : 'Bank transfer completed.'
           };
         case 'rejected':
-        case 'Rejected':
           return {
             title: 'Withdrawal Rejected',
             message: 'Your bank withdrawal request has been rejected.',
             detail: rejectionReason || 'Please contact support for more information.'
           };
         case 'refunded':
-        case 'Refunded':
           return {
             title: 'Withdrawal Refunded',
             message: 'The withdrawal amount has been credited back to your account.',
@@ -474,12 +446,12 @@ const WithdrawalProgressBar = ({
 
                 {/* Crypto Stage 4: Transfer Complete */}
                 <div className={`flex items-center space-x-4 p-4 rounded-lg ${
-                  currentStage >= 4 && currentStatus === 'Credited' ? 'bg-green-50 border border-green-200' : 'bg-gray-50 border border-gray-200'
+                  currentStage >= 4 && currentStatus.toLowerCase() === 'credited' ? 'bg-green-50 border border-green-200' : 'bg-gray-50 border border-gray-200'
                 }`}>
                   <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                    currentStage >= 4 && currentStatus === 'Credited' ? 'bg-green-100' : 'bg-gray-100'
+                    currentStage >= 4 && currentStatus.toLowerCase() === 'credited' ? 'bg-green-100' : 'bg-gray-100'
                   }`}>
-                    {currentStage >= 4 && currentStatus === 'Credited' ? (
+                    {currentStage >= 4 && currentStatus.toLowerCase() === 'credited' ? (
                       <Wallet size={16} className="text-green-600" />
                     ) : (
                       <span className="text-gray-500 font-bold text-sm">4</span>
@@ -490,13 +462,13 @@ const WithdrawalProgressBar = ({
                       CRYPTO TRANSFER COMPLETE
                     </p>
                     <p className="text-gray-600 text-sm uppercase tracking-wide">
-                      {currentStage >= 4 && currentStatus === 'Credited'
+                      {currentStage >= 4 && currentStatus.toLowerCase() === 'credited'
                         ? 'CRYPTOCURRENCY SUCCESSFULLY TRANSFERRED TO YOUR WALLET'
                         : 'AWAITING BLOCKCHAIN CONFIRMATION'
                       }
                     </p>
                   </div>
-                  {currentStage >= 4 && currentStatus === 'Credited' && creditDate && (
+                  {currentStage >= 4 && currentStatus.toLowerCase() === 'credited' && creditDate && (
                     <div className="text-right">
                       <span className="text-xs text-gray-500 uppercase tracking-wide">
                         {creditDate.toLocaleDateString()}
@@ -575,12 +547,12 @@ const WithdrawalProgressBar = ({
 
                 {/* Bank Stage 3: Transfer Complete */}
                 <div className={`flex items-center space-x-4 p-4 rounded-lg ${
-                  currentStage >= 3 && currentStatus === 'Credited' ? 'bg-green-50 border border-green-200' : 'bg-gray-50 border border-gray-200'
+                  currentStage >= 3 && currentStatus.toLowerCase() === 'credited' ? 'bg-green-50 border border-green-200' : 'bg-gray-50 border border-gray-200'
                 }`}>
                   <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                    currentStage >= 3 && currentStatus === 'Credited' ? 'bg-green-100' : 'bg-gray-100'
+                    currentStage >= 3 && currentStatus.toLowerCase() === 'credited' ? 'bg-green-100' : 'bg-gray-100'
                   }`}>
-                    {currentStage >= 3 && currentStatus === 'Credited' ? (
+                    {currentStage >= 3 && currentStatus.toLowerCase() === 'credited' ? (
                       <Building size={16} className="text-green-600" />
                     ) : (
                       <span className="text-gray-500 font-bold text-sm">3</span>
@@ -591,13 +563,13 @@ const WithdrawalProgressBar = ({
                       BANK TRANSFER COMPLETE
                     </p>
                     <p className="text-gray-600 text-sm uppercase tracking-wide">
-                      {currentStage >= 3 && currentStatus === 'Credited'
+                      {currentStage >= 3 && currentStatus.toLowerCase() === 'credited'
                         ? 'FUNDS SUCCESSFULLY TRANSFERRED TO YOUR BANK ACCOUNT'
                         : 'AWAITING BANK TRANSFER COMPLETION'
                       }
                     </p>
                   </div>
-                  {currentStage >= 3 && currentStatus === 'Credited' && creditDate && (
+                  {currentStage >= 3 && currentStatus.toLowerCase() === 'credited' && creditDate && (
                     <div className="text-right">
                       <span className="text-xs text-gray-500 uppercase tracking-wide">
                         {creditDate.toLocaleDateString()}
@@ -609,14 +581,14 @@ const WithdrawalProgressBar = ({
             )}
 
             {/* Rejection/Refund Stage */}
-            {(currentStatus === 'Rejected' || currentStatus === 'Refunded') && (
+            {(currentStatus.toLowerCase() === 'rejected' || currentStatus.toLowerCase() === 'refunded') && (
               <div className={`flex items-center space-x-4 p-4 rounded-lg ${
-                currentStatus === 'Rejected' ? 'bg-red-50 border border-red-200' : 'bg-purple-50 border border-purple-200'
+                currentStatus.toLowerCase() === 'rejected' ? 'bg-red-50 border border-red-200' : 'bg-purple-50 border border-purple-200'
               }`}>
                 <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                  currentStatus === 'Rejected' ? 'bg-red-100' : 'bg-purple-100'
+                  currentStatus.toLowerCase() === 'rejected' ? 'bg-red-100' : 'bg-purple-100'
                 }`}>
-                  {currentStatus === 'Rejected' ? (
+                  {currentStatus.toLowerCase() === 'rejected' ? (
                     <XCircle size={16} className="text-red-600" />
                   ) : (
                     <TrendingUp size={16} className="text-purple-600" />
@@ -624,10 +596,10 @@ const WithdrawalProgressBar = ({
                 </div>
                 <div className="flex-1">
                   <p className="font-semibold text-gray-900 uppercase tracking-wide">
-                    {currentStatus === 'Rejected' ? 'WITHDRAWAL REJECTED' : 'WITHDRAWAL REFUNDED'}
+                    {currentStatus.toLowerCase() === 'rejected' ? 'WITHDRAWAL REJECTED' : 'WITHDRAWAL REFUNDED'}
                   </p>
                   <p className="text-gray-600 text-sm uppercase tracking-wide">
-                    {currentStatus === 'Rejected' 
+                    {currentStatus.toLowerCase() === 'rejected' 
                       ? 'WITHDRAWAL REQUEST WAS REJECTED BY GOVERNOR'
                       : 'WITHDRAWAL AMOUNT REFUNDED TO ACCOUNT BALANCE'
                     }
@@ -669,16 +641,16 @@ const WithdrawalProgressBar = ({
                 <span className="text-gray-600 uppercase tracking-wide">STATUS</span>
                 <span className="font-bold text-gray-900">{currentStatus.toUpperCase()}</span>
               </div>
-              {isCryptoWithdrawal && withdrawalRequest?.cryptoCoinType && (
+              {isCryptoWithdrawal && withdrawalRequest?.destinationDetails?.coinType && (
                 <div className="flex justify-between">
                   <span className="text-gray-600 uppercase tracking-wide">COIN TYPE</span>
-                  <span className="font-bold text-gray-900">{withdrawalRequest?.destinationDetails?.coinType || withdrawalRequest?.cryptoCoinType}</span>
+                  <span className="font-bold text-gray-900 ml-2">{withdrawalRequest?.destinationDetails?.coinType}</span>
                 </div>
               )}
-              {isCryptoWithdrawal && withdrawalRequest?.cryptoNetworkType && (
+              {isCryptoWithdrawal && withdrawalRequest?.destinationDetails?.network && (
                 <div className="flex justify-between">
                   <span className="text-gray-600 uppercase tracking-wide">NETWORK</span>
-                  <span className="font-bold text-gray-900">{withdrawalRequest?.destinationDetails?.network || withdrawalRequest?.cryptoNetworkType}</span>
+                  <span className="font-bold text-gray-900 ml-2">{withdrawalRequest?.destinationDetails?.network}</span>
                 </div>
               )}
             </div>
@@ -716,24 +688,24 @@ const WithdrawalProgressBar = ({
           </h5>
           {isCryptoWithdrawal ? (
             <div className="space-y-2 text-sm">
-              {(withdrawalRequest?.destinationDetails?.address || withdrawalRequest?.cryptoWalletAddress) && (
+              {withdrawalRequest?.destinationDetails?.address && (
                 <div>
                   <span className="text-gray-600 uppercase tracking-wide">WALLET ADDRESS:</span>
                   <p className="font-mono text-gray-900 break-all mt-1">
-                    {withdrawalRequest?.destinationDetails?.address || withdrawalRequest?.cryptoWalletAddress}
+                    {withdrawalRequest?.destinationDetails?.address}
                   </p>
                 </div>
               )}
-              {(withdrawalRequest?.destinationDetails?.network || withdrawalRequest?.cryptoNetworkType) && (
+              {withdrawalRequest?.destinationDetails?.network && (
                 <div>
                   <span className="text-gray-600 uppercase tracking-wide">NETWORK:</span>
-                  <span className="font-bold text-gray-900 ml-2">{withdrawalRequest?.destinationDetails?.network || withdrawalRequest?.cryptoNetworkType}</span>
+                  <span className="font-bold text-gray-900 ml-2">{withdrawalRequest?.destinationDetails?.network}</span>
                 </div>
               )}
-              {(withdrawalRequest?.destinationDetails?.coinType || withdrawalRequest?.cryptoCoinType) && (
+              {withdrawalRequest?.destinationDetails?.coinType && (
                 <div>
                   <span className="text-gray-600 uppercase tracking-wide">COIN TYPE:</span>
-                  <span className="font-bold text-gray-900 ml-2">{withdrawalRequest?.destinationDetails?.coinType || withdrawalRequest?.cryptoCoinType}</span>
+                  <span className="font-bold text-gray-900 ml-2">{withdrawalRequest?.destinationDetails?.coinType}</span>
                 </div>
               )}
             </div>

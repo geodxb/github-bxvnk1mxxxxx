@@ -111,7 +111,7 @@ export interface WithdrawalRequest {
   netAmount?: number;
   platformFee?: number;
   date: string;
-  status: 'pending' | 'approved' | 'rejected' | 'sent' | 'credited' | 'refunded';
+  status: 'pending' | 'approved' | 'rejected' | 'sent' | 'credited' | 'refunded'; // Lowercase status values
   progress?: number;
   processedBy?: string;
   processedAt?: Date | null;

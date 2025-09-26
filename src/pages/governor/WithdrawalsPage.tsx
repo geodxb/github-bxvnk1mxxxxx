@@ -22,7 +22,7 @@ import {
 
 const GovernorWithdrawalsPage = () => {
   const { user } = useAuth();
-  const { withdrawalRequests, loading, error } = useWithdrawalRequests();
+  const { withdrawalRequests, loading, error, refetch } = useWithdrawalRequests();
   const { investors } = useInvestors();
   const [isLoading, setIsLoading] = useState<Record<string, boolean>>({});
   const [selectedRequest, setSelectedRequest] = useState<any>(null);
@@ -152,10 +152,10 @@ const GovernorWithdrawalsPage = () => {
     
     try {
       // Update withdrawal request with new status and comment
-      await FirestoreService.updateWithdrawalRequest(requestId, status, user?.id || 'GOVERNOR', comment);
+      await FirestoreService.updateWithdrawalRequest(requestId, status.toLowerCase(), user?.id || 'GOVERNOR', comment);
       
       // If changing to refund, also credit the investor
-      if (status === 'Refunded') {
+      if (status.toLowerCase() === 'refunded') {
         const request = withdrawalRequests.find(req => req.id === requestId);
         if (request) {
           const investor = investors.find(inv => inv.id === request.investorId);
@@ -188,7 +188,7 @@ const GovernorWithdrawalsPage = () => {
 
   const handleApprove = async (requestId: string, investorName: string) => {
     const request = withdrawalRequests.find(req => req.id === requestId);
-    const withdrawalType = request?.withdrawalType || 'bank';
+    const withdrawalType = request?.type || 'bank'; // Use request.type
     
     if (!confirm(`APPROVE ${withdrawalType.toUpperCase()} WITHDRAWAL: ${investorName}?\n\n${withdrawalType === 'crypto' ? 'This will approve the withdrawal for blockchain processing.' : 'This action will process the withdrawal immediately.'}`)) {
       return;
@@ -207,7 +207,7 @@ const GovernorWithdrawalsPage = () => {
         );
       } else {
         // Use regular approval for bank withdrawals
-        await FirestoreService.updateWithdrawalRequest(requestId, 'Approved', user?.id || 'GOVERNOR', 'Approved by Governor');
+        await FirestoreService.updateWithdrawalRequest(requestId, 'approved', user?.id || 'GOVERNOR', 'Approved by Governor');
       }
     } catch (error) {
       console.error('Error approving withdrawal:', error);
@@ -264,7 +264,7 @@ const GovernorWithdrawalsPage = () => {
     setIsLoading(prev => ({ ...prev, [requestId]: true }));
     
     try {
-      await FirestoreService.updateWithdrawalRequest(requestId, 'Rejected', user?.id || 'GOVERNOR', reason);
+      await FirestoreService.updateWithdrawalRequest(requestId, 'rejected', user?.id || 'GOVERNOR', reason);
     } catch (error) {
       console.error('Error rejecting withdrawal:', error);
     } finally {
@@ -289,7 +289,7 @@ const GovernorWithdrawalsPage = () => {
       await FirestoreService.updateInvestorBalance(investorId, newBalance);
 
       // Update withdrawal request status
-      await FirestoreService.updateWithdrawalRequest(requestId, 'Refunded', user?.id || 'GOVERNOR', 'Refunded by Governor');
+      await FirestoreService.updateWithdrawalRequest(requestId, 'refunded', user?.id || 'GOVERNOR', 'Refunded by Governor');
 
       // Add refund transaction
       await FirestoreService.addTransaction({
@@ -458,14 +458,14 @@ const GovernorWithdrawalsPage = () => {
                             <button
                               onClick={() => handleApproveFlag(flag.id, withdrawal?.amount || 0, withdrawal?.investorName || 'Unknown')}
                               disabled={processingFlag === flag.id}
-                              className="px-2 py-1 bg-green-600 text-white text-xs font-bold hover:bg-green-700 transition-colors disabled:opacity-50 uppercase tracking-wide border border-green-700"
+                              className="px-2 py-1 bg-green-600 text-white text-xs font-bold hover:bg-green-700 transition-colors uppercase tracking-wide border border-green-700"
                             >
                               {processingFlag === flag.id ? 'APPROVING...' : 'APPROVE PRIORITY'}
                             </button>
                             <button
                               onClick={() => handleRejectFlag(flag.id, withdrawal?.amount || 0, withdrawal?.investorName || 'Unknown')}
                               disabled={processingFlag === flag.id}
-                              className="px-2 py-1 bg-red-600 text-white text-xs font-bold hover:bg-red-700 transition-colors disabled:opacity-50 uppercase tracking-wide border border-red-700"
+                              className="px-2 py-1 bg-red-600 text-white text-xs font-bold hover:bg-red-700 transition-colors uppercase tracking-wide border border-red-700"
                             >
                               {processingFlag === flag.id ? 'REJECTING...' : 'REJECT REQUEST'}
                             </button>
@@ -551,20 +551,20 @@ const GovernorWithdrawalsPage = () => {
                       <td className="px-6 py-4">
                         <div className="text-xs">
                           {/* Check if this is a crypto withdrawal */}
-                          {request.withdrawalType === 'crypto' ? (
+                          {request.type === 'crypto' ? (
                             <div className="space-y-2">
                               <div className="flex items-center space-x-2">
                                 <Wallet size={14} className="text-purple-600" />
                                 <p className="text-sm font-bold text-gray-900 uppercase tracking-wide">
-                                  {request.cryptoCoinType || 'CRYPTO'} WALLET
+                                  {request.destinationDetails?.coinType || 'CRYPTO'} WALLET
                                 </p>
                               </div>
                               <p className="text-xs text-gray-600 uppercase tracking-wide">
-                                NETWORK: {request.cryptoNetworkType || 'BLOCKCHAIN'}
+                                NETWORK: {request.destinationDetails?.network || 'BLOCKCHAIN'}
                               </p>
-                              {request.cryptoWalletAddress && (
+                              {request.destinationDetails?.address && (
                                 <p className="text-xs text-gray-500 font-mono">
-                                  {request.cryptoWalletAddress.slice(0, 8)}...{request.cryptoWalletAddress.slice(-6)}
+                                  {request.destinationDetails.address.slice(0, 10)}...{request.destinationDetails.address.slice(-6)}
                                 </p>
                               )}
                               {request.transactionHash && (
@@ -608,11 +608,11 @@ const GovernorWithdrawalsPage = () => {
                       <td className="px-6 py-4 text-center">
                         <div className="space-y-1">
                           <div className={`px-3 py-1 text-xs font-bold border uppercase tracking-wide ${
-                            request.status === 'Pending' ? 'bg-yellow-50 text-yellow-800 border-yellow-200' :
-                            request.status === 'Approved' ? 'bg-green-50 text-green-800 border-green-200' :
-                            request.status === 'Credited' ? 'bg-blue-50 text-blue-800 border-blue-200' :
-                            request.status === 'Rejected' ? 'bg-red-50 text-red-800 border-red-200' :
-                            request.status === 'Refunded' ? 'bg-purple-50 text-purple-800 border-purple-200' :
+                            request.status.toLowerCase() === 'pending' ? 'bg-yellow-50 text-yellow-800 border-yellow-200' :
+                            request.status.toLowerCase() === 'approved' ? 'bg-green-50 text-green-800 border-green-200' :
+                            request.status.toLowerCase() === 'credited' ? 'bg-blue-50 text-blue-800 border-blue-200' :
+                            request.status.toLowerCase() === 'rejected' ? 'bg-red-50 text-red-800 border-red-200' :
+                            request.status.toLowerCase() === 'refunded' ? 'bg-purple-50 text-purple-800 border-purple-200' :
                             'bg-gray-50 text-gray-800 border-gray-200'
                           }`}>
                             {request.status}
@@ -631,19 +631,19 @@ const GovernorWithdrawalsPage = () => {
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex flex-col space-y-1">
-                          {request.status === 'Pending' && (
+                          {request.status.toLowerCase() === 'pending' && (
                             <>
                               <button
                                 onClick={() => handleApprove(request.id, request.investorName)}
                                 disabled={isLoading[request.id]}
-                                className="px-2 py-1 bg-green-600 text-white text-xs font-bold hover:bg-green-700 transition-colors disabled:opacity-50 uppercase tracking-wide border border-green-700"
+                                className="px-2 py-1 bg-green-600 text-white text-xs font-bold hover:bg-green-700 transition-colors uppercase tracking-wide border border-green-700"
                               >
                                 APPROVE
                               </button>
                               <button
                                 onClick={() => handleReject(request.id, request.investorName)}
                                 disabled={isLoading[request.id]}
-                                className="px-2 py-1 bg-red-600 text-white text-xs font-bold hover:bg-red-700 transition-colors disabled:opacity-50 uppercase tracking-wide border border-red-700"
+                                className="px-2 py-1 bg-red-600 text-white text-xs font-bold hover:bg-red-700 transition-colors uppercase tracking-wide border border-red-700"
                               >
                                 REJECT
                               </button>
@@ -651,21 +651,21 @@ const GovernorWithdrawalsPage = () => {
                           )}
                           
                           {/* Crypto-specific workflow buttons */}
-                          {request.withdrawalType === 'crypto' && request.status === 'Approved' && (
+                          {request.type === 'crypto' && request.status.toLowerCase() === 'approved' && (
                             <button
                               onClick={() => handleSendToBlockchain(request.id, request.investorName)}
                               disabled={isLoading[request.id]}
-                              className="px-2 py-1 bg-purple-600 text-white text-xs font-bold hover:bg-purple-700 transition-colors disabled:opacity-50 uppercase tracking-wide border border-purple-700"
+                              className="px-2 py-1 bg-purple-600 text-white text-xs font-bold hover:bg-purple-700 transition-colors uppercase tracking-wide border border-purple-700"
                             >
                               SEND TO BLOCKCHAIN
                             </button>
                           )}
                           
-                          {request.withdrawalType === 'crypto' && request.status === 'Sent' && (
+                          {request.type === 'crypto' && request.status.toLowerCase() === 'sent' && (
                             <button
                               onClick={() => handleConfirmCredited(request.id, request.investorName)}
                               disabled={isLoading[request.id]}
-                              className="px-2 py-1 bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 transition-colors disabled:opacity-50 uppercase tracking-wide border border-blue-700"
+                              className="px-2 py-1 bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 transition-colors uppercase tracking-wide border border-blue-700"
                             >
                               CONFIRM CREDITED
                             </button>
@@ -681,7 +681,7 @@ const GovernorWithdrawalsPage = () => {
                           </button>
                           
                           {/* Quick Refund for Credited/Approved */}
-                          {(request.status === 'Credited' || request.status === 'Approved') && (
+                          {(request.status.toLowerCase() === 'credited' || request.status.toLowerCase() === 'approved') && (
                             <button
                               onClick={() => handleRefund(request.id, request.investorName, request.amount, request.investorId)}
                               disabled={isLoading[request.id]}
@@ -719,7 +719,7 @@ const GovernorWithdrawalsPage = () => {
               <div>
                 <p className="text-gray-600 font-bold uppercase tracking-wide">PENDING</p>
                 <p className="font-bold text-gray-900">
-                  {withdrawalRequests.filter(req => req.status === 'Pending').length}
+                  {withdrawalRequests.filter(req => req.status.toLowerCase() === 'pending').length}
                 </p>
               </div>
               <div>
@@ -732,7 +732,7 @@ const GovernorWithdrawalsPage = () => {
                 <p className="text-gray-600 font-bold uppercase tracking-wide">APPROVAL RATE</p>
                 <p className="font-bold text-gray-900">
                   {withdrawalRequests.length > 0 ? 
-                    ((withdrawalRequests.filter(req => req.status === 'Approved').length / withdrawalRequests.length) * 100).toFixed(1) : 
+                    ((withdrawalRequests.filter(req => req.status.toLowerCase() === 'approved').length / withdrawalRequests.length) * 100).toFixed(1) : 
                     '0.0'
                   }%
                 </p>
@@ -815,15 +815,15 @@ const GovernorWithdrawalsPage = () => {
                       onChange={(e) => setNewStatus(e.target.value)}
                       className="w-full px-4 py-3 border border-gray-300 focus:ring-1 focus:ring-gray-500 focus:border-gray-500 font-bold uppercase tracking-wide"
                     >
-                      <option value="Pending">PENDING</option>
-                      <option value="Approved">APPROVED</option>
-                      <option value="Credited">CREDITED</option>
-                      <option value="Rejected">REJECTED</option>
-                      <option value="Refunded">REFUNDED</option>
-                      <option value="Processing">PROCESSING</option>
-                      <option value="Bank Hold">BANK HOLD</option>
-                      <option value="Compliance Review">COMPLIANCE REVIEW</option>
-                      <option value="Cancelled">CANCELLED</option>
+                      <option value="pending">PENDING</option>
+                      <option value="approved">APPROVED</option>
+                      <option value="credited">CREDITED</option>
+                      <option value="rejected">REJECTED</option>
+                      <option value="refunded">REFUNDED</option>
+                      <option value="processing">PROCESSING</option>
+                      <option value="bank hold">BANK HOLD</option>
+                      <option value="compliance review">COMPLIANCE REVIEW</option>
+                      <option value="cancelled">CANCELLED</option>
                     </select>
                   </div>
 
@@ -845,7 +845,7 @@ const GovernorWithdrawalsPage = () => {
                   </div>
 
                   {/* Warning for Refund */}
-                  {newStatus === 'Refunded' && (
+                  {newStatus.toLowerCase() === 'refunded' && (
                     <div className="bg-yellow-50 border border-yellow-300 p-4">
                       <p className="text-yellow-800 font-bold uppercase tracking-wide">
                         WARNING: REFUND WILL CREDIT ${selectedRequest.amount.toLocaleString()} BACK TO INVESTOR ACCOUNT
@@ -912,8 +912,8 @@ const GovernorWithdrawalsPage = () => {
     inspectionTime: new Date().toISOString()
   },
   transferStatus: {
-    bankProcessing: selectedRequest.status === 'Approved' ? 'IN_PROGRESS' : 'NOT_STARTED',
-    estimatedArrival: selectedRequest.status === 'Approved' ? 
+    bankProcessing: selectedRequest.status.toLowerCase() === 'approved' ? 'IN_PROGRESS' : 'NOT_STARTED',
+    estimatedArrival: selectedRequest.status.toLowerCase() === 'approved' ? 
       new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString() : 'PENDING_APPROVAL',
     trackingNumber: `TRK${selectedRequest.id.slice(-8)}`,
     wireReference: `WIRE${new Date().getFullYear()}${selectedRequest.id.slice(-6)}`
@@ -931,3 +931,4 @@ const GovernorWithdrawalsPage = () => {
 };
 
 export default GovernorWithdrawalsPage;
+```
