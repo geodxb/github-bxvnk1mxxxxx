@@ -106,16 +106,41 @@ export interface WithdrawalRequest {
   id: string;
   investorId: string;
   investorName: string;
+  investorEmail?: string;
   amount: number;
+  netAmount?: number;
+  platformFee?: number;
   date: string;
-  status: 'Pending' | 'Approved' | 'Rejected';
+  status: 'pending' | 'approved' | 'rejected' | 'sent' | 'credited' | 'refunded';
+  progress?: number;
   processedBy?: string;
   processedAt?: Date | null;
   approvalDate?: Date | null;
   requestedBy: string; // Always "investor" to indicate this was requested by investor
   
   // New fields for crypto withdrawals
-  withdrawalType: 'bank' | 'crypto';
+  type?: 'bank' | 'crypto';
+  currency?: string;
+  destination?: string; // ID of the destination (bank account or crypto wallet)
+  destinationDetails?: {
+    // For crypto wallets
+    id?: string;
+    address?: string;
+    coinType?: string;
+    network?: string;
+    label?: string;
+    qrCode?: string;
+    isPrimary?: boolean;
+    createdAt?: Date;
+    // For bank accounts
+    bankName?: string;
+    accountNumber?: string;
+    accountHolderName?: string;
+    iban?: string;
+    swiftCode?: string;
+    currency?: string;
+    country?: string;
+  };
   cryptoWalletId?: string; // ID of the selected crypto wallet
   cryptoWalletAddress?: string;
   cryptoNetworkType?: string;
@@ -134,6 +159,7 @@ export interface WithdrawalRequest {
   governorComment?: string;
   lastModifiedBy?: string;
   createdAt: Date;
+  updatedAt?: Date;
 }
 
 export interface Commission {

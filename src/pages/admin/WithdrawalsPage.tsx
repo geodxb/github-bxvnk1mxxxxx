@@ -158,23 +158,23 @@ const WithdrawalsPage = () => {
       key: 'bankDetails',
       header: 'Destination',
       render: (_: any, row: any) => {
-        // Check if this is a crypto withdrawal
-        if (row.withdrawalType === 'crypto') {
+        // Check if this is a crypto withdrawal using the correct field
+        if (row.type === 'crypto' || row.destinationDetails?.address) {
           return (
             <div className="text-right">
               <div className="space-y-1">
                 <div className="flex items-center justify-end space-x-2">
                   <Wallet size={14} className="text-purple-600" />
                   <p className="text-sm font-bold text-gray-900">
-                    {row.cryptoCoinType || 'CRYPTO'}
+                    {row.destinationDetails?.coinType || row.cryptoCoinType || 'CRYPTO'}
                   </p>
                 </div>
                 <p className="text-xs text-gray-600">
-                  {row.cryptoNetworkType || 'BLOCKCHAIN'}
+                  {row.destinationDetails?.network || row.cryptoNetworkType || 'BLOCKCHAIN'}
                 </p>
-                {row.cryptoWalletAddress && (
+                {(row.destinationDetails?.address || row.cryptoWalletAddress) && (
                   <p className="text-xs text-gray-500 font-mono">
-                    {row.cryptoWalletAddress.slice(0, 8)}...{row.cryptoWalletAddress.slice(-6)}
+                    {(row.destinationDetails?.address || row.cryptoWalletAddress).slice(0, 8)}...{(row.destinationDetails?.address || row.cryptoWalletAddress).slice(-6)}
                   </p>
                 )}
                 {row.transactionHash && (
@@ -190,14 +190,16 @@ const WithdrawalsPage = () => {
         // Default to bank details for bank withdrawals
         const investor = getInvestorDetails(row.investorId);
         
-        // Get bank details from investor's bankAccounts or legacy bankDetails
-        let bankInfo = null;
-        if (investor?.bankAccounts && investor.bankAccounts.length > 0) {
-          // Use primary bank account or first available
-          bankInfo = investor.bankAccounts.find((acc: any) => acc.isPrimary) || investor.bankAccounts[0];
-        } else if (investor?.bankDetails && investor.bankDetails.bankName) {
-          // Fallback to legacy bankDetails
-          bankInfo = investor.bankDetails;
+        // Get bank details from destinationDetails first, then fallback to investor data
+        let bankInfo = row.destinationDetails;
+        if (!bankInfo || !bankInfo.bankName) {
+          if (investor?.bankAccounts && investor.bankAccounts.length > 0) {
+            // Use primary bank account or first available
+            bankInfo = investor.bankAccounts.find((acc: any) => acc.isPrimary) || investor.bankAccounts[0];
+          } else if (investor?.bankDetails && investor.bankDetails.bankName) {
+            // Fallback to legacy bankDetails
+            bankInfo = investor.bankDetails;
+          }
         }
         
         return (
