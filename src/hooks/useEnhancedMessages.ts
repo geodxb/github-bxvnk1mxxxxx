@@ -51,11 +51,22 @@ export const useEnhancedMessages = (conversationId: string) => {
     }
 
     console.log('🔄 useEnhancedMessages: Setting up listener for conversation:', conversationId);
+    setLoading(true);
     
     // Set up real-time listener
     const unsubscribe = EnhancedMessageService.subscribeToEnhancedMessages(conversationId, (updatedMessages) => {
       try {
-        console.log('🔄 useEnhancedMessages: Real-time update received:', updatedMessages.length, 'messages');
+        console.log('🔄 useEnhancedMessages: Real-time update received for conversation', conversationId, ':', updatedMessages.length, 'messages');
+        
+        // Log each message for debugging
+        updatedMessages.forEach((msg, index) => {
+          console.log(`📨 Message ${index + 1}:`, {
+            id: msg.id,
+            sender: `${msg.senderName} (${msg.senderRole})`,
+            content: msg.content?.substring(0, 50) + '...',
+            timestamp: msg.timestamp
+          });
+        });
         
         // Validate messages before setting state
         const validMessages = updatedMessages.filter(msg => {

@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { EnhancedMessageService } from '../../services/enhancedMessageService';
+import { MessageService } from '../../services/messageService';
 import { useAuth } from '../../contexts/AuthContext';
 import { useEnhancedMessages } from '../../hooks/useEnhancedMessages';
 import { EnhancedMessage, ConversationMetadata } from '../../types/conversation';
@@ -29,7 +30,12 @@ const EnhancedMessageThread = ({
   onJoinConversation
 }: EnhancedMessageThreadProps) => {
   const { user } = useAuth();
-  const { messages, loading } = useEnhancedMessages(conversationId);
+  const { messages: enhancedMessages, loading: enhancedLoading } = useEnhancedMessages(conversationId);
+  
+  // State for final messages to display
+  const [allMessages, setAllMessages] = useState<EnhancedMessage[]>([]);
+  const [loading, setLoading] = useState(true);
+  
   const [newMessage, setNewMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [replyingTo, setReplyingTo] = useState<EnhancedMessage | null>(null);
@@ -44,12 +50,62 @@ const EnhancedMessageThread = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // Debug logging for conversation and messages
+  useEffect(() => {
+    console.log('🔍 EnhancedMessageThread received props:', {
+      conversationId,
+      hasConversation: !!conversation,
+      conversationTitle: conversation?.title,
+      conversationParticipants: conversation?.participants?.length || 0
+    });
+  }, [conversationId, conversation]);
+
+  // Process and merge messages from enhanced hook
+  useEffect(() => {
+    console.log('🔄 Processing enhanced messages:', {
+      conversationId,
+      enhancedMessagesCount: enhancedMessages.length,
+      enhancedLoading
+    });
+
+    if (!conversationId) {
+      console.log('❌ No conversationId provided to EnhancedMessageThread');
+      setAllMessages([]);
+      setLoading(false);
+      return;
+    }
+
+    if (enhancedLoading) {
+      console.log('⏳ Enhanced messages still loading...');
+      setLoading(true);
+      return;
+    }
+
+    // Use enhanced messages as the primary source
+    let finalMessages = [...enhancedMessages];
+
+    // Sort messages by timestamp
+    finalMessages.sort((a, b) => {
+      const timeA = a.timestamp?.getTime() || 0;
+      const timeB = b.timestamp?.getTime() || 0;
+      return timeA - timeB;
+    });
+
+    console.log('✅ Final messages processed:', {
+      totalMessages: finalMessages.length,
+      messageIds: finalMessages.map(m => m.id),
+      messageSenders: finalMessages.map(m => `${m.senderName} (${m.senderRole})`)
+    });
+
+    setAllMessages(finalMessages);
+    setLoading(false);
+  }, [conversationId, enhancedMessages, enhancedLoading]);
 
   useEffect(() => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [messages]);
+  }, [allMessages]);
 
   const getFileIcon = (fileType: string) => {
     if (fileType.includes('pdf')) {
@@ -392,7 +448,7 @@ const EnhancedMessageThread = ({
 
       {/* Messages Area - FIXED SPACING */}
       <div className="flex-1 overflow-y-auto p-6 bg-gray-50 min-h-0">
-        {messages.length === 0 ? (
+        {allMessages.length === 0 ? (
           <div className="text-center py-12">
             <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <MessageSquare size={32} className="text-gray-400" />
@@ -407,7 +463,7 @@ const EnhancedMessageThread = ({
         ) : (
           <div className="space-y-6">
             {/* Governor Join Banner */}
-            {messages.some(msg => 
+            {allMessages.some(msg => 
               msg.messageType === 'system' && 
               msg.content.includes('MANAGEMENT OVERSIGHT ACTIVATED')
             ) && (
@@ -429,7 +485,7 @@ const EnhancedMessageThread = ({
             )}
             
             <AnimatePresence initial={false}>
-              {messages.map((message) => (
+              {allMessages.map((message) => (
                 <motion.div
                   key={message.id}
                   initial={{ opacity: 0, y: 10 }}

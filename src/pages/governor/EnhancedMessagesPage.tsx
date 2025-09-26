@@ -25,6 +25,28 @@ const GovernorEnhancedMessagesPage = () => {
   const [showAuditView, setShowAuditView] = useState(false);
   const [allConversations, setAllConversations] = useState<ConversationMetadata[]>([]);
 
+  // Handle conversation selection with proper state updates
+  const handleSelectConversation = (conversationId: string) => {
+    console.log('🔄 Governor selecting conversation:', conversationId);
+    
+    // Find the conversation object from available conversations
+    // This will be populated by the EnhancedConversationList component
+    setSelectedConversationId(conversationId);
+    
+    // Note: selectedConversation will be set by the conversation list component
+    // when it has the full conversation data
+  };
+
+  // Update selected conversation when conversations are loaded
+  useEffect(() => {
+    if (selectedConversationId && allConversations.length > 0) {
+      const conversation = allConversations.find(conv => conv.id === selectedConversationId);
+      if (conversation) {
+        console.log('✅ Found conversation object for selected ID:', conversation);
+        setSelectedConversation(conversation);
+      }
+    }
+  }, [selectedConversationId, allConversations]);
   // Department options for Governor
   const departments = [
     { id: 'general', label: 'GENERAL OVERSIGHT', icon: <User size={16} />, color: 'text-gray-700' },
@@ -202,8 +224,9 @@ const GovernorEnhancedMessagesPage = () => {
         {/* Enhanced Conversation List */}
         <EnhancedConversationList
           selectedConversationId={selectedConversationId}
-          onSelectConversation={setSelectedConversationId}
+          onSelectConversation={handleSelectConversation}
           onNewConversation={handleNewConversation}
+          onConversationDataLoaded={setAllConversations}
         />
         
         {/* Enhanced Message Thread */}

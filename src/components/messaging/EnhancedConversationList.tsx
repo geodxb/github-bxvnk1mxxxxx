@@ -9,16 +9,26 @@ interface EnhancedConversationListProps {
   selectedConversationId: string | null;
   onSelectConversation: (conversationId: string) => void;
   onNewConversation: () => void;
+  onConversationDataLoaded?: (conversations: ConversationMetadata[]) => void;
 }
 
 const EnhancedConversationList = ({ 
   selectedConversationId, 
   onSelectConversation,
-  onNewConversation 
+  onNewConversation,
+  onConversationDataLoaded
 }: EnhancedConversationListProps) => {
   const { user } = useAuth();
   const { conversations, loading } = useEnhancedConversations(user?.id || '');
   const [searchTerm, setSearchTerm] = useState('');
+
+  // Pass conversation data to parent when loaded
+  useEffect(() => {
+    if (onConversationDataLoaded && conversations.length > 0) {
+      console.log('📤 Passing conversation data to parent:', conversations.length);
+      onConversationDataLoaded(conversations);
+    }
+  }, [conversations, onConversationDataLoaded]);
 
   // Debug logging for conversations
   useEffect(() => {
@@ -167,7 +177,7 @@ const EnhancedConversationList = ({
                     {/* Conversation Title */}
                     <div className="flex items-center justify-between">
                       <h4 className="font-semibold text-gray-900 text-lg">
-                        {conversation.title || 'help'}
+                        {conversation.title || 'Conversation'}
                       </h4>
                       <span className="text-xs text-gray-500 font-medium">
                         {formatTime(conversation.lastActivity)}
@@ -196,7 +206,7 @@ const EnhancedConversationList = ({
                     <div className="text-gray-600 text-sm">
                       {typeof conversation.lastMessage === 'string' && conversation.lastMessage ? 
                         conversation.lastMessage : 
-                        'hola'
+                        'No messages yet'
                       }
                     </div>
                     
