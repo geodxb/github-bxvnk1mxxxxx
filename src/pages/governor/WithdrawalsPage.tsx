@@ -919,4 +919,3 @@ const GovernorWithdrawalsPage = () => {
 };
 
 export default GovernorWithdrawalsPage;
-```
