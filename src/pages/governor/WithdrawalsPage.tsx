@@ -6,19 +6,7 @@ import { WithdrawalFlagService } from '../../services/withdrawalFlagService';
 import { GovernorService } from '../../services/governorService';
 import { useWithdrawalFlags } from '../../hooks/useWithdrawalFlags';
 import { useAuth } from '../../contexts/AuthContext';
-import { 
-  Flag, 
-  AlertTriangle, 
-  Eye, 
-  FileText, 
-  Shield,
-  Clock,
-  CheckCircle,
-  XCircle,
-  User,
-  Building,
-  Wallet
-} from 'lucide-react';
+import { Flag, TriangleAlert as AlertTriangle, Eye, FileText, Shield, Clock, CircleCheck as CheckCircle, Circle as XCircle, User, Building, Wallet } from 'lucide-react';
 
 const GovernorWithdrawalsPage = () => {
   const { user } = useAuth();
