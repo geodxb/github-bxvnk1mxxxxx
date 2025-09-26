@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useEnhancedConversations } from '../../hooks/useEnhancedMessages';
 import { useAuth } from '../../contexts/AuthContext';

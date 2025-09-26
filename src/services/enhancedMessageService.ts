@@ -771,19 +771,50 @@ export class EnhancedMessageService {
           return isParticipant || hasMatchingRole || createdByUserRole;
         }) as ConversationMetadata[];
         
-        console.log('📊 Processed conversations:', allConversations.length);
-        allConversations.forEach((conv, index) => {
-          console.log(`📋 Conversation ${index + 1}:`, {
-            id: conv.id,
-            title: conv.title,
-            participants: conv.participants,
-            participantNames: conv.participantNames,
-            lastMessage: conv.lastMessage
+        // GOVERNOR OVERRIDE: Governors can see ALL conversations without any filtering
+        if (userRole === 'governor') {
+          console.log(`👑 GOVERNOR OVERRIDE: Showing ALL ${allConversations.length} conversations`);
+          allConversations.forEach((conv, index) => {
+            console.log(`👑 Governor conversation ${index + 1}:`, {
+              id: conv.id,
+              title: conv.title,
+              participants: conv.participants,
+              participantNames: conv.participantNames,
+              lastMessage: conv.lastMessage
+            });
           });
+          
+          const sortedConversations = allConversations.sort((a, b) => 
+            b.lastActivity.getTime() - a.lastActivity.getTime()
+          );
+          
+          console.log(`👑 Final conversations for GOVERNOR:`, sortedConversations.length);
+          callback(sortedConversations);
+          return;
+        }
+        
+        // For non-governor users, apply filtering
+        const filteredConversations = allConversations.filter(conv => {
+          // For admin/investor, show conversations they participate in OR conversations involving their role
+          const isParticipant = conv.participants.some((p: ConversationParticipant) => p.id === userId);
+          
+          // Also check if user's role matches any participant's role (for investor conversations)
+          const hasMatchingRole = conv.participants.some((p: ConversationParticipant) => p.role === userRole);
+          
+          // Check if conversation was created by someone with the same role
+          const createdByUserRole = conv.participants.some((p: ConversationParticipant) => p.role === userRole);
+          
+          console.log(`👤 User ${userId} participant check for ${conv.id}:`, isParticipant);
+          console.log(`👤 User role ${userRole} matches participant role:`, hasMatchingRole);
+          console.log(`👤 User role ${userRole} created by same role:`, createdByUserRole);
+          
+          return isParticipant || hasMatchingRole || createdByUserRole;
         });
         
+        console.log('📊 Filtered conversations for non-governor:', filteredConversations.length);
+        
         // Sort conversations by last activity
-        const sortedConversations = allConversations.sort((a, b) => 
+        const sortedConversations = filteredConversations.sort((a, b) => 
           b.lastActivity.getTime() - a.lastActivity.getTime()
         );
         
@@ -1168,12 +1199,22 @@ export class EnhancedMessageService {
 
   // Helper method to parse participants from conversation data
   static parseParticipants(data: any): ConversationParticipant[] {
+    console.log('🔍 Parsing participants from data:', {
+      hasParticipantDetails: !!data.participantDetails,
+      hasParticipants: !!data.participants,
+      hasParticipantNames: !!data.participantNames,
+      participantDetailsLength: data.participantDetails?.length,
+      participantsLength: data.participants?.length,
+      participantNamesLength: data.participantNames?.length
+    });
+    
     // Try to get participants from participantDetails first (new structure)
     if (data.participantDetails && Array.isArray(data.participantDetails)) {
+      console.log('✅ Using participantDetails structure');
       return data.participantDetails.map((p: any) => ({
         id: p.id || '',
         name: p.name || 'Unknown User',
-        role: p.role || 'investor',
+        role: p.role || 'investor', // Changed 'affiliate' to 'investor'
         email: p.email || '',
         joinedAt: p.joinedAt?.toDate() || new Date()
       }));
@@ -1181,15 +1222,17 @@ export class EnhancedMessageService {
     
     // Fallback to legacy participants array
     if (data.participants && Array.isArray(data.participants)) {
+      console.log('⚠️ Using legacy participants structure');
       return data.participants.map((participantId: string, index: number) => ({
         id: participantId,
         name: data.participantNames?.[index] || 'Unknown User',
-        role: data.participantRoles?.[index] || 'investor',
+        role: data.participantRoles?.[index] || 'investor', // Changed 'affiliate' to 'investor'
         email: '',
         joinedAt: new Date()
       }));
     }
     
+    console.log('❌ No valid participant data found, returning empty array');
     return [];
   }
 
@@ -1204,7 +1247,10 @@ export class EnhancedMessageService {
     }
     
     if (data.participants && Array.isArray(data.participants)) {
-      return data.participants.map(() => 'Unknown User');
+      return data.participants.map((participantId: string) => {
+        // Try to extract name from participant ID or use fallback
+        return participantId.includes('_') ? participantId.split('_')[0] : 'Unknown User';
+      });
     }
     
     return [];
@@ -1221,7 +1267,7 @@ export class EnhancedMessageService {
     }
     
     if (data.participants && Array.isArray(data.participants)) {
-      return data.participants.map(() => 'investor');
+      return data.participants.map(() => 'investor'); // Changed 'affiliate' to 'investor'
     }
     
     return [];
