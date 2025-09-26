@@ -58,6 +58,11 @@ const EnhancedMessageThread = ({
       conversationTitle: conversation?.title,
       conversationParticipants: conversation?.participants?.length || 0
     });
+    
+    // If we have a conversationId but no conversation object, log this
+    if (conversationId && !conversation) {
+      console.log('⚠️ EnhancedMessageThread: Have conversationId but no conversation object');
+    }
   }, [conversationId, conversation]);
 
   // Process and merge messages from enhanced hook
@@ -68,7 +73,7 @@ const EnhancedMessageThread = ({
       enhancedLoading
     });
 
-    if (!conversationId) {
+    if (!conversationId || !conversationId.trim()) {
       console.log('❌ No conversationId provided to EnhancedMessageThread');
       setAllMessages([]);
       setLoading(false);
@@ -80,6 +85,16 @@ const EnhancedMessageThread = ({
       setLoading(true);
       return;
     }
+
+    console.log('📨 Enhanced messages received:', enhancedMessages.length);
+    enhancedMessages.forEach((msg, index) => {
+      console.log(`📨 Message ${index + 1}:`, {
+        id: msg.id,
+        sender: `${msg.senderName} (${msg.senderRole})`,
+        content: msg.content?.substring(0, 50) + '...',
+        conversationId: msg.conversationId
+      });
+    });
 
     // Use enhanced messages as the primary source
     let finalMessages = [...enhancedMessages];

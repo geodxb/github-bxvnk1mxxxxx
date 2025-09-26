@@ -167,7 +167,7 @@ const EnhancedConversationList = ({
                   key={conversation.id}
                   onClick={() => onSelectConversation(conversation.id)}
                   whileHover={{ scale: 1.02 }}
-                  className={`w-full text-left p-4 rounded-lg transition-all ${
+                  className={`w-full text-left p-4 rounded-lg transition-all cursor-pointer ${
                     selectedConversationId === conversation.id
                       ? 'bg-gray-100 border border-gray-300'
                       : 'hover:bg-gray-50 border border-transparent'

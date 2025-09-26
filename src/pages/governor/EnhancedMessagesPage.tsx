@@ -28,13 +28,24 @@ const GovernorEnhancedMessagesPage = () => {
   // Handle conversation selection with proper state updates
   const handleSelectConversation = (conversationId: string) => {
     console.log('🔄 Governor selecting conversation:', conversationId);
+    console.log('🔄 Available conversations:', allConversations.length);
+    console.log('🔄 Looking for conversation with ID:', conversationId);
     
     // Find the conversation object from available conversations
-    // This will be populated by the EnhancedConversationList component
     setSelectedConversationId(conversationId);
     
-    // Note: selectedConversation will be set by the conversation list component
-    // when it has the full conversation data
+    // Immediately try to find and set the conversation object
+    const conversation = allConversations.find(conv => conv.id === conversationId);
+    if (conversation) {
+      console.log('✅ Found conversation object immediately:', conversation.title);
+      setSelectedConversation(conversation);
+    } else {
+      console.log('⚠️ Conversation object not found immediately, will be set when available');
+      setSelectedConversation(null);
+    }
+    
+    // Clear the new message form when selecting a conversation
+    setShowNewMessageForm(false);
   };
 
   // Update selected conversation when conversations are loaded
