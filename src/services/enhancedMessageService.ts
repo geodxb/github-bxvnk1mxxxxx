@@ -719,7 +719,9 @@ export class EnhancedMessageService {
               timestamp: entry.timestamp?.toDate() || new Date()
             })) || []
           };
-        }) as ConversationMetadata[];
+        }).filter(conv => 
+          conv.participants.some((p: ConversationParticipant) => p.id === userId)
+        ) as ConversationMetadata[];
         
         console.log('📊 Processed conversations:', allConversations.length);
         allConversations.forEach((conv, index) => {
