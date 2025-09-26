@@ -538,7 +538,7 @@ export class MessageService {
           });
         });
         
-        const conversations = querySnapshot.docs.map(doc => {
+        const allConversations = querySnapshot.docs.map(doc => {
           const data = doc.data();
           
           // Handle new structure with lastMessage as object
@@ -587,21 +587,37 @@ export class MessageService {
             recipientType: data.recipientType || 'admin',
             updatedAt: data.updatedAt?.toDate() || data.createdAt?.toDate() || new Date()
           };
-        }).filter(conv => {
+        }) as Conversation[];
+        
+        console.log('📊 Processed conversations:', allConversations.length);
+        
+        // Filter conversations based on user role and participation
+        const filteredConversations = allConversations.filter(conv => {
           // For governor, show ALL conversations
           if (userRole === 'governor') {
             console.log(`👑 Governor viewing conversation: ${conv.id} - ${conv.title}`);
             return true;
           }
           
-          // For admin/investor, show only conversations they participate in
+          // For admin/investor, show conversations they participate in OR conversations involving their role
           const isParticipant = conv.participants.includes(userId);
+          
+          // Also check if conversation involves user's role (for investor conversations)
+          const involvesUserRole = conv.participantDetails?.some((p: any) => p.role === userRole) || false;
+          
           console.log(`👤 User ${userId} participant check for ${conv.id}:`, isParticipant);
-          return isParticipant;
-        }) as Conversation[];
+          console.log(`👤 User role ${userRole} involved in conversation:`, involvesUserRole);
+          
+          return isParticipant || involvesUserRole;
+        });
         
-        console.log(`✅ Final conversations for ${userRole || 'user'}:`, conversations.length);
-        callback(conversations);
+        console.log('🔄 Filtered conversations:', filteredConversations.length);
+        const sortedConversations = filteredConversations.sort((a, b) => 
+          b.lastActivity.getTime() - a.lastActivity.getTime()
+        );
+        
+        console.log(`✅ Final conversations for ${userRole || 'user'}:`, sortedConversations.length);
+        callback(sortedConversations);
       },
       (error) => {
         console.error('❌ Real-time listener failed for conversations:', error);
