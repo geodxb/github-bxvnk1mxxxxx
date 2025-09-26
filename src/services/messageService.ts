@@ -61,7 +61,7 @@ export class MessageService {
       console.log('✅ Message document created:', docRef.id);
       
       // Update conversation with last message
-      await this.updateConversationLastMessage(finalConversationId, content);
+      await this.updateConversationLastMessageWithSender(finalConversationId, content, senderId, senderName, senderRole);
       
       // Create notifications for message recipients
       try {
@@ -202,8 +202,20 @@ export class MessageService {
   static async updateConversationLastMessage(conversationId: string, lastMessage: string): Promise<void> {
     try {
       const docRef = doc(db, 'conversations', conversationId);
+      
+      // Get the current user info for the lastMessage object
+      const messageObject = {
+        content: lastMessage.substring(0, 100),
+        senderId: '', // Will be filled by the calling function
+        senderName: '', // Will be filled by the calling function
+        senderRole: 'investor', // Default to investor
+        createdAt: serverTimestamp(),
+        id: `msg_${Date.now()}`,
+        attachments: []
+      };
+      
       await updateDoc(docRef, {
-        lastMessage: lastMessage.substring(0, 100), // Truncate for preview
+        lastMessage: messageObject,
         lastMessageTime: serverTimestamp(),
         updatedAt: serverTimestamp()
       });
@@ -267,7 +279,7 @@ export class MessageService {
               const data = doc.data();
               
               // Validate required fields
-              if (!data.senderId || !data.senderName || (!data.content && (!data.attachments || data.attachments.length === 0))) {
+              if (!data.senderId || (!data.content && (!data.attachments || data.attachments.length === 0))) {
                 console.error('❌ Invalid regular message data:', { docId: doc.id, data });
                 return null;
               }
@@ -275,6 +287,8 @@ export class MessageService {
               return {
                 id: doc.id,
                 ...data,
+                senderName: data.senderName || 'Unknown User',
+                senderRole: data.senderRole || 'investor',
                 timestamp: data.timestamp?.toDate() || new Date(),
                 createdAt: data.createdAt?.toDate() || new Date(),
                 attachments: data.attachments || []
@@ -351,10 +365,40 @@ export class MessageService {
         console.log('🔄 Conversations updated in real-time');
         const conversations = querySnapshot.docs.map(doc => {
           const data = doc.data();
+          
+          // Handle new structure with lastMessage as object
+          let lastMessage = '';
+          let lastMessageSender = '';
+          let lastMessageTime = data.updatedAt || data.lastMessageTime;
+          
+          if (data.lastMessage) {
+            if (typeof data.lastMessage === 'object' && data.lastMessage.content) {
+              // New structure: lastMessage is an object
+              lastMessage = data.lastMessage.content;
+              lastMessageSender = data.lastMessage.senderName || '';
+            } else if (typeof data.lastMessage === 'string') {
+              // Legacy structure: lastMessage is a string
+              lastMessage = data.lastMessage;
+              lastMessageSender = data.lastMessageSender || '';
+            }
+          }
+          
           return {
             id: doc.id,
-            ...data,
-            lastMessageTime: data.lastMessageTime?.toDate() || new Date(),
+            participants: data.participants || [],
+            participantNames: data.participantDetails?.map((p: any) => p.name) || data.participantNames || [],
+            createdAt: data.createdAt?.toDate() || new Date(),
+            lastActivity: lastMessageTime?.toDate() || new Date(),
+            lastMessage: lastMessage,
+            lastMessageSender: lastMessageSender,
+            lastMessageTime: lastMessageTime?.toDate() || new Date(),
+            adminId: data.adminId || '',
+            affiliateId: data.affiliateId || '',
+            title: data.title || '',
+            department: data.department || null,
+            urgency: data.urgency || 'low',
+            isActive: data.isActive !== false,
+            recipientType: data.recipientType || 'admin',
             createdAt: data.createdAt?.toDate() || new Date(),
             updatedAt: data.updatedAt?.toDate() || new Date()
           };
@@ -369,6 +413,37 @@ export class MessageService {
     );
 
     return unsubscribe;
+  }
+
+  // Update conversation with last message including sender info
+  static async updateConversationLastMessageWithSender(
+    conversationId: string, 
+    lastMessage: string, 
+    senderId: string, 
+    senderName: string, 
+    senderRole: string
+  ): Promise<void> {
+    try {
+      const docRef = doc(db, 'conversations', conversationId);
+      
+      const messageObject = {
+        content: lastMessage.substring(0, 100),
+        senderId,
+        senderName,
+        senderRole,
+        createdAt: serverTimestamp(),
+        id: `msg_${Date.now()}`,
+        attachments: []
+      };
+      
+      await updateDoc(docRef, {
+        lastMessage: messageObject,
+        lastMessageTime: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      });
+    } catch (error) {
+      console.error('❌ Error updating conversation with sender info:', error);
+    }
   }
 
 }
