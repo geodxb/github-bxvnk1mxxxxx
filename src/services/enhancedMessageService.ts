@@ -1077,7 +1077,7 @@ export class EnhancedMessageService {
   // Get all available recipients for a user
   static async getAvailableRecipients(
     userId: string,
-    userRole: 'governor' | 'admin' // Removed 'affiliate'
+    userRole: 'governor' | 'admin' | 'investor'
   ): Promise<Array<{
     id: string;
     name: string;
@@ -1091,7 +1091,7 @@ export class EnhancedMessageService {
     try {
       const recipients: any[] = [];
 
-      if (userRole === 'admin' || userRole === 'governor') {
+      if (userRole === 'admin' || userRole === 'governor' || userRole === 'investor') {
         // Add governors (management team)
         const governorQuery = query(collection(db, 'users'), where('role', '==', 'governor'));
         const governorSnapshot = await getDocs(governorQuery);
@@ -1154,11 +1154,6 @@ export class EnhancedMessageService {
             currentBalance: data.currentBalance
           });
         });
-      } else {
-        // This block should ideally not be reached if only admin/governor can log in
-        // If it were, it would be for an investor to message admin/governor
-        // For now, we'll keep it empty or throw an error if an investor somehow logs in
-        throw new Error('Invalid user role for fetching recipients');
       }
 
       return recipients;
