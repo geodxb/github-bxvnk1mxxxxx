@@ -1,12 +1,9 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { EnhancedMessageService } from '../../services/enhancedMessageService';
-import { MessageService } from '../../services/messageService';
 import { useAuth } from '../../contexts/AuthContext';
 import { useEnhancedMessages } from '../../hooks/useEnhancedMessages';
-import { useMessages } from '../../hooks/useMessages';
 import { EnhancedMessage, ConversationMetadata } from '../../types/conversation';
-import { AffiliateMessage } from '../../types/message';
 import { Send, Reply, Crown, Shield, Users, TriangleAlert as AlertTriangle, ArrowUp, Eye, CircleCheck as CheckCircle, Clock, User, MessageSquare, Paperclip, Download, FileText, Image, File, X, ZoomIn } from 'lucide-react';
 
 // Interface for uploaded documents
@@ -32,10 +29,7 @@ const EnhancedMessageThread = ({
   onJoinConversation
 }: EnhancedMessageThreadProps) => {
   const { user } = useAuth();
-  const { messages: enhancedMessages, loading: enhancedLoading } = useEnhancedMessages(conversationId);
-  const { messages: regularMessages, loading: regularLoading } = useMessages(conversationId);
-  const [allMessages, setAllMessages] = useState<(EnhancedMessage | AffiliateMessage)[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { messages, loading } = useEnhancedMessages(conversationId);
   const [newMessage, setNewMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [replyingTo, setReplyingTo] = useState<EnhancedMessage | null>(null);
@@ -50,90 +44,12 @@ const EnhancedMessageThread = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Merge and sort messages from both collections
-  useEffect(() => {
-    console.log('🔄 EnhancedMessageThread: Processing messages for conversation:', conversationId, {
-      enhancedLoading,
-      regularLoading,
-      enhancedMessagesCount: enhancedMessages.length,
-      regularMessagesCount: regularMessages.length
-    });
-    
-    // Always set loading to false if both queries are done, even if no messages
-    if (!enhancedLoading && !regularLoading) {
-      try {
-        const allMessagesList: (EnhancedMessage | AffiliateMessage)[] = [];
-        
-        // Add enhanced messages
-        enhancedMessages.forEach(msg => {
-          if (msg && msg.id && msg.timestamp) {
-            allMessagesList.push({
-              ...msg,
-              source: 'enhanced'
-            } as any);
-          } else {
-            console.error('❌ Invalid enhanced message found:', msg);
-          }
-        });
-        
-        // Add regular messages that don't exist in enhanced
-        regularMessages.forEach(msg => {
-          if (!msg || !msg.id || !msg.timestamp) {
-            console.error('❌ Invalid regular message found:', msg);
-            return;
-          }
-          
-          const existsInEnhanced = enhancedMessages.some(eMsg => 
-            eMsg.id === msg.id || 
-            (Math.abs(new Date(eMsg.timestamp).getTime() - new Date(msg.timestamp).getTime()) < 1000 && 
-             eMsg.content === msg.content)
-          );
-          
-          if (!existsInEnhanced) {
-            allMessagesList.push({
-              ...msg,
-              source: 'regular',
-              senderRole: msg.senderRole || 'investor',
-              priority: msg.priority || 'medium',
-              status: msg.status || 'sent',
-              readBy: msg.readBy || [],
-              messageType: 'text',
-              isEscalation: false
-            } as any);
-          }
-        });
-        
-        // Sort messages by timestamp
-        const sorted = allMessagesList.sort((a, b) => 
-          new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-        );
-        
-        console.log('✅ Messages processed successfully:', sorted.length);
-        console.log('📨 Message details:', sorted.map(m => ({
-          id: m.id,
-          sender: m.senderName,
-          content: m.content?.substring(0, 50) + '...',
-          timestamp: m.timestamp
-        })));
-        
-        setAllMessages(sorted);
-        setLoading(false);
-      } catch (error) {
-        console.error('❌ Error processing messages:', error);
-        setAllMessages([]);
-        setLoading(false);
-      }
-    } else {
-      console.log('⏳ Still loading messages...', { enhancedLoading, regularLoading });
-      setLoading(true);
-    }
-  }, [enhancedMessages, regularMessages, enhancedLoading, regularLoading]);
 
   useEffect(() => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [allMessages]);
+  }, [messages]);
 
   const getFileIcon = (fileType: string) => {
     if (fileType.includes('pdf')) {
