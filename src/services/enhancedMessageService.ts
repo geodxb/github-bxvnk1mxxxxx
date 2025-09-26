@@ -678,7 +678,7 @@ export class EnhancedMessageService {
           console.log(`🔍 Processing conversation ${doc.id}:`, data);
           
           // Ensure lastMessage and lastMessageSender are always strings
-          let lastMessage = '';
+          if (!data.senderId || !data.senderName || (!data.content && (!data.attachments || data.attachments.length === 0))) {
           let lastMessageSender = '';
           
           if (data.lastMessage) {
