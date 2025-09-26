@@ -642,7 +642,8 @@ export class EnhancedMessageService {
   // Real-time listener for enhanced conversations
   static subscribeToEnhancedConversations(
     userId: string,
-    callback: (conversations: ConversationMetadata[]) => void
+    callback: (conversations: ConversationMetadata[]) => void,
+    userRole?: string
   ): () => void {
     console.log('🔄 Setting up real-time listener for enhanced conversations for userId:', userId);
     
@@ -694,10 +695,16 @@ export class EnhancedMessageService {
             }
           }
           
-          return {
+          // For admin/investor, show conversations they participate in OR conversations created by their role
             id: doc.id,
-            type: data.type || 'admin_investor', // Changed 'admin_affiliate' to 'admin_investor'
-            title: data.title || 'Conversation',
+          
+          // Also check if user's role matches any participant's role (for investor conversations)
+          const hasMatchingRole = conv.participants.some((p: ConversationParticipant) => p.role === userRole);
+          
+          console.log(`👤 User ${userId} participant check for ${conv.id}:`, isParticipant);
+          console.log(`👤 User role ${userRole} matches participant role:`, hasMatchingRole);
+          
+          return isParticipant || hasMatchingRole;
             description: data.description,
             participants: data.participants || [],
             participantNames: data.participantNames || [],

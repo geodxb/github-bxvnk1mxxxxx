@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useAuth } from '../contexts/AuthContext';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { EnhancedMessageService } from '../services/enhancedMessageService';
@@ -8,6 +9,7 @@ export const useEnhancedConversations = (userId: string) => {
   const [conversations, setConversations] = useState<ConversationMetadata[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { user } = useAuth();
 
   useEffect(() => {
     if (!userId) {
@@ -22,7 +24,7 @@ export const useEnhancedConversations = (userId: string) => {
       setConversations(updatedConversations);
       setLoading(false);
       setError(null);
-    });
+    }, user?.role);
 
     // Cleanup listener on unmount
     return () => {
@@ -30,6 +32,7 @@ export const useEnhancedConversations = (userId: string) => {
       unsubscribe();
     };
   }, [userId]);
+  }, [userId, user?.role]);
 
   return { conversations, loading, error };
 };
