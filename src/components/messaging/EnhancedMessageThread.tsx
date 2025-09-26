@@ -93,7 +93,6 @@ const EnhancedMessageThread = ({
             senderRole: msg.senderRole || 'affiliate',
             priority: msg.priority || 'medium',
             status: msg.status || 'sent',
-        console.log('📨 Processing regular messages...');
             readBy: [],
             messageType: 'text',
             isEscalation: false
