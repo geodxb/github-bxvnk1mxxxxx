@@ -100,6 +100,11 @@ export class NotificationService {
 
       const stageInfo = stageMessages[stage];
       
+      if (!stageInfo) {
+        console.warn(`❌ Unknown withdrawal stage: ${stage}. Skipping notification.`);
+        return;
+      }
+      
       await this.createNotification(
         'withdrawal_stage',
         stageInfo.title,
