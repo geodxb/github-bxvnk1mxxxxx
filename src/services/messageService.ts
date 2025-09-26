@@ -499,6 +499,7 @@ export class MessageService {
     userId: string, 
     callback: (conversations: Conversation[]) => void,
     userRole?: string
+    userRole?: string
   ): () => void {
     console.log('🔄 Setting up real-time listener for conversations for user:', userId);
     
@@ -537,7 +538,7 @@ export class MessageService {
             recipientType: data.recipientType
           });
         });
-        
+        console.log(`🔄 Conversations updated in real-time for ${userRole === 'governor' ? 'GOVERNOR (ALL)' : 'USER'}: ${querySnapshot.docs.length} conversations`);
         const conversations = querySnapshot.docs.map(doc => {
           const data = doc.data();
           
@@ -603,11 +604,24 @@ export class MessageService {
         console.log(`✅ Final conversations for ${userRole || 'user'}:`, conversations.length);
         callback(conversations);
       },
-      (error) => {
-        console.error('❌ Real-time listener failed for conversations:', error);
-        callback([]);
-      }
-    );
+    )
+    let conversationsQuery;
+    
+    if (userRole === 'governor') {
+      // Governor can see ALL conversations
+      console.log('👑 Governor accessing ALL conversations for oversight');
+      conversationsQuery = query(
+        collection(db, 'conversations'),
+        orderBy('updatedAt', 'desc')
+      );
+    } else {
+      // Regular users only see their own conversations
+      conversationsQuery = query(
+        collection(db, 'conversations'),
+        where('participants', 'array-contains', userId),
+        orderBy('updatedAt', 'desc')
+      );
+    }
 
     return unsubscribe;
   }
