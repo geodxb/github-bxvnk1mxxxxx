@@ -748,9 +748,32 @@ export class EnhancedMessageService {
           });
         });
         
-        // For now, show ALL conversations to debug the issue
-        console.log('🔄 Showing ALL conversations for debugging');
-        const sortedConversations = allConversations.sort((a, b) => 
+        // Filter conversations based on user role and participation
+        const filteredConversations = allConversations.filter(conv => {
+          // GOVERNOR OVERRIDE: Governors can see ALL conversations
+          if (userRole === 'governor') {
+            console.log(`👑 Governor viewing conversation: ${conv.id} - ${conv.title}`);
+            return true;
+          }
+          
+          // For admin/investor, show conversations they participate in OR conversations involving their role
+          const isParticipant = conv.participants.some((p: ConversationParticipant) => p.id === userId);
+          
+          // Also check if user's role matches any participant's role (for investor conversations)
+          const hasMatchingRole = conv.participants.some((p: ConversationParticipant) => p.role === userRole);
+          
+          // Check if conversation was created by someone with the same role
+          const createdByUserRole = conv.participants.some((p: ConversationParticipant) => p.role === userRole);
+          
+          console.log(`👤 User ${userId} participant check for ${conv.id}:`, isParticipant);
+          console.log(`👤 User role ${userRole} matches participant role:`, hasMatchingRole);
+          console.log(`👤 User role ${userRole} created by same role:`, createdByUserRole);
+          
+          return isParticipant || hasMatchingRole || createdByUserRole;
+        });
+        
+        console.log('🔄 Filtered conversations:', filteredConversations.length);
+        const sortedConversations = filteredConversations.sort((a, b) => 
           b.lastActivity.getTime() - a.lastActivity.getTime()
         );
         
