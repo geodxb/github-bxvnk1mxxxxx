@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useAuth } from '../contexts/AuthContext';
 import { MessageService } from '../services/messageService';
 import { AffiliateMessage, Conversation } from '../types/message';
 
@@ -55,6 +56,7 @@ export const useConversations = (userId: string) => {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { user } = useAuth();
 
   useEffect(() => {
     if (!userId) {
@@ -65,11 +67,11 @@ export const useConversations = (userId: string) => {
     // Set up real-time listener
     console.log('🔄 Setting up real-time listener for conversations...');
     const unsubscribe = MessageService.subscribeToConversations(userId, (updatedConversations) => {
-      console.log('🔄 Real-time update: Conversations updated');
+      console.log(`🔄 Real-time update: Conversations updated for ${user?.role === 'governor' ? 'GOVERNOR (ALL)' : 'USER'}`);
       setConversations(updatedConversations);
       setLoading(false);
       setError(null);
-    });
+    }, user?.role);
 
     // Cleanup listener on unmount
     return () => {

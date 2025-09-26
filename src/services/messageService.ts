@@ -373,7 +373,7 @@ export class MessageService {
       const conversationsQuery = query(
         collection(db, 'conversations'),
         where('participants', 'array-contains', userId),
-        orderBy('lastMessageTime', 'desc')
+        orderBy('updatedAt', 'desc')
       );
       
       const conversationsSnapshot = await getDocs(conversationsQuery);
@@ -383,7 +383,7 @@ export class MessageService {
         return {
           id: doc.id,
           ...data,
-          lastMessageTime: data.lastMessageTime?.toDate() || new Date(),
+          lastMessageTime: data.updatedAt?.toDate() || new Date(),
           createdAt: data.createdAt?.toDate() || new Date(),
           updatedAt: data.updatedAt?.toDate() || new Date()
         };
@@ -397,23 +397,99 @@ export class MessageService {
     }
   }
 
+  // Get ALL conversations for governor oversight
+  static async getAllConversationsForGovernor(): Promise<Conversation[]> {
+    try {
+      console.log('👑 Fetching ALL conversations for governor oversight');
+      
+      const conversationsQuery = query(
+        collection(db, 'conversations'),
+        orderBy('updatedAt', 'desc')
+      );
+      
+      const conversationsSnapshot = await getDocs(conversationsQuery);
+      
+      const conversations = conversationsSnapshot.docs.map(doc => {
+        const data = doc.data();
+        
+        // Handle new structure with lastMessage as object
+        let lastMessage = '';
+        let lastMessageSender = '';
+        let lastMessageTime = data.updatedAt;
+        
+        if (data.lastMessage) {
+          if (typeof data.lastMessage === 'object' && data.lastMessage.content) {
+            // New structure: lastMessage is an object
+            lastMessage = data.lastMessage.content;
+            lastMessageSender = data.lastMessage.senderName || '';
+            lastMessageTime = data.lastMessage.createdAt || data.updatedAt;
+          } else if (typeof data.lastMessage === 'string') {
+            // Legacy structure: lastMessage is a string
+            lastMessage = data.lastMessage;
+            lastMessageSender = data.lastMessageSender || '';
+          }
+        }
+        
+        return {
+          id: doc.id,
+          participants: data.participants || [],
+          participantNames: data.participantDetails?.map((p: any) => p.name) || 
+                           data.participantNames || 
+                           data.participants || [],
+          createdAt: data.createdAt?.toDate() || new Date(),
+          lastActivity: lastMessageTime?.toDate() || new Date(),
+          lastMessage: lastMessage,
+          lastMessageSender: lastMessageSender,
+          lastMessageTime: lastMessageTime?.toDate() || new Date(),
+          adminId: data.adminId || '',
+          investorId: data.investorId || data.affiliateId || '',
+          title: data.title || '',
+          department: data.department || null,
+          urgency: data.urgency || 'low',
+          isActive: data.isActive !== false,
+          recipientType: data.recipientType || 'admin',
+          updatedAt: data.updatedAt?.toDate() || new Date()
+        };
+      }) as Conversation[];
+      
+      console.log(`👑 Retrieved ${conversations.length} total conversations for governor`);
+      return conversations;
+    } catch (error) {
+      console.error('❌ Error fetching all conversations for governor:', error);
+      throw new Error(`Failed to load conversations: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
   // Real-time listener for conversations
   static subscribeToConversations(
     userId: string, 
-    callback: (conversations: Conversation[]) => void
+    callback: (conversations: Conversation[]) => void,
+    userRole?: string
   ): () => void {
     console.log('🔄 Setting up real-time listener for conversations for user:', userId);
     
-    const conversationsQuery = query(
-      collection(db, 'conversations'),
-      where('participants', 'array-contains', userId),
-      orderBy('lastMessageTime', 'desc')
-    );
+    let conversationsQuery;
+    
+    if (userRole === 'governor') {
+      // Governor can see ALL conversations
+      console.log('👑 Governor accessing ALL conversations for oversight');
+      conversationsQuery = query(
+        collection(db, 'conversations'),
+        orderBy('updatedAt', 'desc')
+      );
+    } else {
+      // Regular users only see their own conversations
+      conversationsQuery = query(
+        collection(db, 'conversations'),
+        where('participants', 'array-contains', userId),
+        orderBy('updatedAt', 'desc')
+      );
+    }
     
     const unsubscribe = onSnapshot(
       conversationsQuery,
       (querySnapshot) => {
-        console.log('🔄 Conversations updated in real-time');
+        console.log(`🔄 Conversations updated in real-time for ${userRole === 'governor' ? 'GOVERNOR (ALL)' : 'USER'}: ${querySnapshot.docs.length} conversations`);
         const conversations = querySnapshot.docs.map(doc => {
           const data = doc.data();
           
