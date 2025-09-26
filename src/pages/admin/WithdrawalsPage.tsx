@@ -117,10 +117,11 @@ const WithdrawalsPage = () => {
     {
       key: 'investorName',
       header: 'Investor',
+     align: 'center' as 'center',
       render: (value: string, row: any) => {
         const investor = getInvestorDetails(row.investorId);
         return (
-          <div className="space-y-1">
+         <div className="space-y-1 text-center">
             <p className="font-medium text-gray-900">{value}</p>
             <p className="text-xs text-gray-500">ID: {row.investorId.slice(-8)}</p>
             {investor && (
@@ -133,9 +134,9 @@ const WithdrawalsPage = () => {
     {
       key: 'amount',
       header: 'Amount',
-      align: 'right' as 'right',
+     align: 'center' as 'center',
       render: (value: number) => (
-        <div className="text-right">
+       <div className="text-center">
           <p className="font-medium text-gray-900">${value?.toLocaleString() || '0'}</p>
           <p className="text-xs text-gray-500">USD</p>
         </div>
@@ -144,10 +145,11 @@ const WithdrawalsPage = () => {
     {
       key: 'date',
       header: 'Date',
+     align: 'center' as 'center',
       render: (value: string) => {
         const date = new Date(value);
         return (
-          <div className="space-y-1">
+         <div className="space-y-1 text-center">
             <p className="text-sm text-gray-900">{date.toLocaleDateString()}</p>
             <p className="text-xs text-gray-500">{date.toLocaleDateString('en-US', { weekday: 'short' })}</p>
           </div>
@@ -157,13 +159,14 @@ const WithdrawalsPage = () => {
     {
       key: 'bankDetails',
       header: 'Destination',
+     align: 'center' as 'center',
       render: (_: any, row: any) => {
         // Check if this is a crypto withdrawal using the correct field
         if (row.type === 'crypto' || row.destinationDetails?.address) {
           return (
-            <div className="text-right">
+           <div className="text-center">
               <div className="space-y-1">
-                <div className="flex items-center justify-end space-x-2">
+               <div className="flex items-center justify-center space-x-2">
                   <Wallet size={14} className="text-purple-600" />
                   <p className="text-sm font-bold text-gray-900">
                     {row.destinationDetails?.coinType || row.cryptoCoinType || 'CRYPTO'}
@@ -203,7 +206,7 @@ const WithdrawalsPage = () => {
         }
         
         return (
-          <div className="text-right">
+         <div className="text-center">
             <div className="space-y-1">
               <p className="text-sm font-bold text-gray-900">
                 {bankInfo?.bankName || 'Bank Transfer'}
