@@ -267,7 +267,7 @@ export class MessageService {
               const data = doc.data();
               
               // Validate required fields
-              if (!data.senderId || !data.senderName || !data.content) {
+              if (!data.senderId || !data.senderName || (!data.content && (!data.attachments || data.attachments.length === 0))) {
                 console.error('❌ Invalid regular message data:', { docId: doc.id, data });
                 return null;
               }
