@@ -337,24 +337,24 @@ export class EnhancedMessageService {
         
         // Check regular conversations collection (only if no department specified)
         if (!department) {
-        const regularQuery = query(
-          collection(db, 'conversations'),
-          where('participants', 'array-contains', userId)
-        );
-        
-        const regularSnapshot = await getDocs(regularQuery);
-        const existingRegularConversation = regularSnapshot.docs.find(doc => {
-          const data = doc.data();
-          const participants = data.participants || [];
-          const hasTarget = participants.includes(targetId);
-          console.log('🔍 Checking regular conversation:', doc.id, 'participants:', participants, 'hasTarget:', hasTarget);
-          return hasTarget;
-        });
-        
-        if (existingRegularConversation) {
-          console.log('✅ Found existing regular conversation:', existingRegularConversation.id);
-          return existingRegularConversation.id;
-        }
+          const regularQuery = query(
+            collection(db, 'conversations'),
+            where('participants', 'array-contains', userId)
+          );
+          
+          const regularSnapshot = await getDocs(regularQuery);
+          const existingRegularConversation = regularSnapshot.docs.find(doc => {
+            const data = doc.data();
+            const participants = data.participants || [];
+            const hasTarget = participants.includes(targetId);
+            console.log('🔍 Checking regular conversation:', doc.id, 'participants:', participants, 'hasTarget:', hasTarget);
+            return hasTarget;
+          });
+          
+          if (existingRegularConversation) {
+            console.log('✅ Found existing regular conversation:', existingRegularConversation.id);
+            return existingRegularConversation.id;
+          }
         }
 
         // Create new conversation with specific target
@@ -638,6 +638,7 @@ export class EnhancedMessageService {
       throw new Error(`Failed to load conversations: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
+
   // Real-time listener for enhanced conversations
   static subscribeToEnhancedConversations(
     userId: string,
@@ -678,7 +679,7 @@ export class EnhancedMessageService {
           console.log(`🔍 Processing conversation ${doc.id}:`, data);
           
           // Ensure lastMessage and lastMessageSender are always strings
-          if (!data.senderId || !data.senderName || (!data.content && (!data.attachments || data.attachments.length === 0))) {
+          let lastMessage = '';
           let lastMessageSender = '';
           
           if (data.lastMessage) {
@@ -719,9 +720,7 @@ export class EnhancedMessageService {
               timestamp: entry.timestamp?.toDate() || new Date()
             })) || []
           };
-        }).filter(conv => 
-          conv.participants.some((p: ConversationParticipant) => p.id === userId)
-        ) as ConversationMetadata[];
+        }) as ConversationMetadata[];
         
         console.log('📊 Processed conversations:', allConversations.length);
         allConversations.forEach((conv, index) => {
@@ -822,7 +821,7 @@ export class EnhancedMessageService {
               const data = doc.data();
               
               // Validate required fields
-              if (!data.senderId || !data.senderName || !data.content) {
+              if (!data.senderId || !data.senderName || (!data.content && (!data.attachments || data.attachments.length === 0))) {
                 console.error('❌ Invalid enhanced message data:', { docId: doc.id, data });
                 return null;
               }
