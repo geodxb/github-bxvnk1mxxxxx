@@ -352,7 +352,7 @@ export class MessageService {
                 id: doc.id,
                 ...data,
                 senderName: data.senderName || 'Unknown User',
-                senderRole: data.senderRole || 'investor', 
+                senderRole: data.senderRole || data.userRole || 'investor', 
                 content: data.content || '',
                 timestamp: data.timestamp?.toDate() || data.createdAt?.toDate() || new Date(),
                 createdAt: data.createdAt?.toDate() || new Date(),
