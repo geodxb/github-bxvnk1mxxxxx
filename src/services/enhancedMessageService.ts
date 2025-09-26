@@ -695,16 +695,10 @@ export class EnhancedMessageService {
             }
           }
           
-          // For admin/investor, show conversations they participate in OR conversations created by their role
+          return {
             id: doc.id,
-          
-          // Also check if user's role matches any participant's role (for investor conversations)
-          const hasMatchingRole = conv.participants.some((p: ConversationParticipant) => p.role === userRole);
-          
-          console.log(`👤 User ${userId} participant check for ${conv.id}:`, isParticipant);
-          console.log(`👤 User role ${userRole} matches participant role:`, hasMatchingRole);
-          
-          return isParticipant || hasMatchingRole;
+            type: data.type,
+            title: data.title,
             description: data.description,
             participants: data.participants || [],
             participantNames: data.participantNames || [],
@@ -727,9 +721,18 @@ export class EnhancedMessageService {
               timestamp: entry.timestamp?.toDate() || new Date()
             })) || []
           };
-        }).filter(conv => 
-          conv.participants.some((p: ConversationParticipant) => p.id === userId)
-        ) as ConversationMetadata[];
+        }).filter(conv => {
+          // For admin/investor, show conversations they participate in OR conversations created by their role
+          const isParticipant = conv.participants.some((p: ConversationParticipant) => p.id === userId);
+          
+          // Also check if user's role matches any participant's role (for investor conversations)
+          const hasMatchingRole = conv.participants.some((p: ConversationParticipant) => p.role === userRole);
+          
+          console.log(`👤 User ${userId} participant check for ${conv.id}:`, isParticipant);
+          console.log(`👤 User role ${userRole} matches participant role:`, hasMatchingRole);
+          
+          return isParticipant || hasMatchingRole;
+        }) as ConversationMetadata[];
         
         console.log('📊 Processed conversations:', allConversations.length);
         allConversations.forEach((conv, index) => {
