@@ -647,18 +647,18 @@ export class EnhancedMessageService {
   ): () => void {
     console.log('🔄 Setting up real-time listener for enhanced conversations for userId:', userId, 'Role:', userRole);
     
-    // Query ALL conversations to find all conversations including investor-created ones
+    // Query ALL conversations
     const conversationsQuery = query(collection(db, 'conversations'));
     
     const unsubscribe = onSnapshot(
       conversationsQuery,
       (querySnapshot) => {
-        console.log('🔄 ALL Firebase conversations snapshot:', querySnapshot.docs.length, 'documents found');
+        console.log('🔄 Enhanced conversations snapshot:', querySnapshot.docs.length, 'documents found');
         
         // Log each raw document
         querySnapshot.docs.forEach((doc, index) => {
           const data = doc.data();
-          console.log(`📄 Enhanced Document ${index + 1} (${doc.id}):`, {
+          console.log(`📄 Enhanced Conversation ${index + 1} (${doc.id}):`, {
             id: doc.id,
             title: data.title,
             participants: data.participants,
@@ -673,16 +673,8 @@ export class EnhancedMessageService {
           }
         });
         
-        if (querySnapshot.docs.length === 0) {
-          console.log('❌ NO CONVERSATIONS FOUND IN FIREBASE');
-          callback([]);
-          return;
-        }
-        
         const allConversations = querySnapshot.docs.map(doc => {
           const data = doc.data();
-          
-          console.log(`🔍 Processing enhanced conversation ${doc.id}:`, data);
           
           // Ensure lastMessage and lastMessageSender are always strings
           let lastMessage = '';
@@ -758,49 +750,22 @@ export class EnhancedMessageService {
           };
         }) as ConversationMetadata[];
         
-        console.log('📊 Processed enhanced conversations:', allConversations.length);
-        allConversations.forEach((conv, index) => {
-          console.log(`📋 Enhanced Conversation ${index + 1}:`, {
-            id: conv.id,
-            title: conv.title,
-            participants: conv.participants,
-            participantNames: conv.participantNames,
-            lastMessage: conv.lastMessage,
-            department: conv.department
-          });
-        });
-        
-        // Filter conversations based on user role
-        let filteredConversations = allConversations;
+        // Governor sees ALL conversations, others see only their own
+        let finalConversations = allConversations;
         if (userRole !== 'governor') {
-          // For non-governors, filter to only show conversations they participate in
-          filteredConversations = allConversations.filter(conv => {
+          finalConversations = allConversations.filter(conv => {
             const isParticipant = conv.participants.some((p: any) => p.id === userId);
-            console.log(`🔍 Enhanced Conversation ${conv.id}: User ${userId} is participant? ${isParticipant}`);
             return isParticipant;
           });
-          console.log(`🔍 Enhanced: Filtered to ${filteredConversations.length} conversations for user ${userId}`);
-        } else {
-          console.log('👑 Governor accessing ALL enhanced conversations for oversight');
         }
         
-        const sortedConversations = allConversations.sort((a, b) => 
+        const sortedConversations = finalConversations.sort((a, b) => 
           b.lastActivity.getTime() - a.lastActivity.getTime()
         );
         
-        console.log('✅ Final sorted enhanced conversations:', sortedConversations.length);
-        sortedConversations.forEach((conv, index) => {
-          console.log(`📋 Final enhanced conversation ${index + 1}:`, {
-            id: conv.id,
-            title: conv.title,
-            participants: conv.participants,
-            participantNames: conv.participantNames,
-            lastMessage: conv.lastMessage,
-            lastActivity: conv.lastActivity
-          });
-        });
+        console.log(`✅ Final conversations for ${userRole}: ${sortedConversations.length}`);
         
-        callback(filteredConversations);
+        callback(sortedConversations);
       },
       (error) => {
         console.error('❌ Real-time listener failed for conversations:', error);

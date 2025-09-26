@@ -468,11 +468,7 @@ export class MessageService {
   ): () => void {
     console.log('🔄 Setting up real-time listener for conversations for user:', userId);
     
-    let conversationsQuery;
-    
-    // ALWAYS fetch ALL conversations for debugging - will filter in frontend if needed
-    console.log('🔍 Fetching ALL conversations for debugging conversation ID: BBZTQC4luu3mFfwEs1EY');
-    conversationsQuery = query(
+    const conversationsQuery = query(
       collection(db, 'conversations'),
       orderBy('updatedAt', 'desc')
     );
@@ -480,12 +476,12 @@ export class MessageService {
     const unsubscribe = onSnapshot(
       conversationsQuery,
       (querySnapshot) => {
-        console.log(`🔄 ALL conversations fetched: ${querySnapshot.docs.length} total conversations`);
+        console.log(`🔄 Conversations updated: ${querySnapshot.docs.length} total conversations`);
         
         // Log each conversation for debugging
         querySnapshot.docs.forEach((doc, index) => {
           const data = doc.data();
-          console.log(`📋 Conversation ${index + 1} (${doc.id}):`, {
+          console.log(`📋 Raw Conversation ${index + 1} (${doc.id}):`, {
             id: doc.id,
             title: data.title,
             participants: data.participants,
@@ -544,21 +540,22 @@ export class MessageService {
           };
         }) as Conversation[];
         
-        console.log(`✅ Processed ${conversations.length} conversations total`);
+        console.log(`✅ Processed ${conversations.length} conversations for role: ${userRole || 'unknown'}`);
         
-        // Filter conversations based on user role AFTER fetching all
-        let filteredConversations = conversations;
-        if (userRole !== 'governor') {
+        // Governor sees ALL conversations, others see only their own
+        if (userRole === 'governor') {
+          console.log('👑 Governor accessing ALL conversations for oversight');
+          callback(conversations);
+        } else {
           // For non-governors, filter to only show conversations they participate in
-          filteredConversations = conversations.filter(conv => {
+          const filteredConversations = conversations.filter(conv => {
             const isParticipant = conv.participants.includes(userId);
             console.log(`🔍 Conversation ${conv.id}: User ${userId} is participant? ${isParticipant}`);
             return isParticipant;
           });
           console.log(`🔍 Filtered to ${filteredConversations.length} conversations for user ${userId}`);
+          callback(filteredConversations);
         }
-        
-        callback(filteredConversations);
       },
       (error) => {
         console.error('❌ Real-time listener failed for conversations:', error);
