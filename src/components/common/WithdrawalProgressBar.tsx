@@ -1,20 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { 
-  Clock, 
-  CheckCircle, 
-  XCircle, 
-  Send,
-  Wallet,
-  Building,
-  AlertTriangle,
-  DollarSign,
-  Calendar,
-  Shield,
-  Hash,
-  TrendingUp,
-  FileText
-} from 'lucide-react';
+import { Clock, CircleCheck as CheckCircle, Circle as XCircle, Send, Wallet, Building, TriangleAlert as AlertTriangle, DollarSign, Calendar, Shield, Hash, TrendingUp, FileText } from 'lucide-react';
 
 interface WithdrawalProgressBarProps {
   withdrawalId: string;
