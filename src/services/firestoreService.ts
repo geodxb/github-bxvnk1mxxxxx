@@ -21,6 +21,24 @@ import { Investor, Transaction, WithdrawalRequest, Commission, AuditLog, SystemS
 import { NotificationService } from './notificationService';
 
 export class FirestoreService {
+  // Generic method to update any document in any collection
+  static async updateDocument(collectionName: string, documentId: string, data: any): Promise<void> {
+    try {
+      console.log(`🔥 Updating document ${documentId} in collection ${collectionName}`);
+      
+      const docRef = doc(db, collectionName, documentId);
+      await updateDoc(docRef, {
+        ...data,
+        updatedAt: serverTimestamp()
+      });
+      
+      console.log(`✅ Document ${documentId} updated successfully`);
+    } catch (error) {
+      console.error(`❌ Error updating document ${documentId}:`, error);
+      throw error;
+    }
+  }
+
   // Get all investors
   static async getInvestors(): Promise<Investor[]> {
     try {
