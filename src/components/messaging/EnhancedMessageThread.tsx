@@ -6,27 +6,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useEnhancedMessages } from '../../hooks/useEnhancedMessages';
 import { useMessages } from '../../hooks/useMessages';
 import { EnhancedMessage, ConversationMetadata } from '../../types/conversation';
-import { 
-  Send, 
-  Reply,
-  Crown,
-  Shield,
-  Users,
-  AlertTriangle,
-  ArrowUp,
-  Eye,
-  CheckCircle,
-  Clock,
-  User,
-  MessageSquare,
-  Paperclip,
-  Download,
-  FileText,
-  Image,
-  File,
-  X,
-  ZoomIn
-} from 'lucide-react';
+import { Send, Reply, Crown, Shield, Users, TriangleAlert as AlertTriangle, ArrowUp, Eye, CircleCheck as CheckCircle, Clock, User, MessageSquare, Paperclip, Download, FileText, Image, File, X, ZoomIn } from 'lucide-react';
 
 // Interface for uploaded documents
 interface UploadedDocument {
@@ -606,7 +586,6 @@ const EnhancedMessageThread = ({
                           ATTACHMENTS ({message.attachments.length}):
                         </p>
                         {message.attachments.map((attachment, index) => {
-                          try {
                           // Handle both string URLs and attachment objects
                           let attachmentData;
                           if (typeof attachment === 'string') {
@@ -624,12 +603,6 @@ const EnhancedMessageThread = ({
                           } else {
                             attachmentData = attachment;
                           }
-                            // Validate attachment data
-                            if (!attachmentData || !attachmentData.url) {
-                              console.error('❌ Invalid attachment data:', attachmentData);
-                              return null;
-                            }
-                            
                           
                           // Enhanced image detection
                           const isImage = attachmentData.type?.startsWith('image/') || 
@@ -737,14 +710,6 @@ const EnhancedMessageThread = ({
                               )}
                             </div>
                           );
-                          } catch (attachmentError) {
-                            console.error('❌ Error rendering attachment:', attachmentError, { attachment, index });
-                            return (
-                              <div key={index} className="p-3 bg-red-50 border border-red-200 rounded text-xs text-red-700">
-                                Error displaying attachment {index + 1}
-                              </div>
-                            );
-                          }
                         })}
                       </div>
                     )}

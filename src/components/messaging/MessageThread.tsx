@@ -4,22 +4,7 @@ import { MessageService } from '../../services/messageService';
 import { useAuth } from '../../contexts/AuthContext';
 import { useMessages } from '../../hooks/useMessages';
 import { AffiliateMessage } from '../../types/message';
-import { 
-  Send, 
-  Paperclip, 
-  MoreVertical, 
-  Reply,
-  Clock,
-  CheckCircle,
-  AlertTriangle,
-  User,
-  Upload,
-  FileText,
-  X,
-  Eye,
-  Download,
-  Image
-} from 'lucide-react';
+import { Send, Paperclip, MoveVertical as MoreVertical, Reply, Clock, CircleCheck as CheckCircle, TriangleAlert as AlertTriangle, User, Upload, FileText, X, Eye, Download, Image } from 'lucide-react';
 
 interface MessageThreadProps {
   conversationId: string;
