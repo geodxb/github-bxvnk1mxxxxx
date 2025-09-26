@@ -148,73 +148,46 @@ const EnhancedConversationList = ({
                       : 'hover:bg-gray-50 border border-transparent'
                   }`}
                 >
-                  <div className="flex items-start space-x-3">
-                    <div className="w-10 h-10 bg-gray-200 rounded-lg flex items-center justify-center flex-shrink-0">
-                      {getConversationIcon(conversation)}
+                  <div className="space-y-3">
+                    {/* Conversation Title */}
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-semibold text-gray-900 text-lg">
+                        {conversation.title || 'help'}
+                      </h4>
+                      <span className="text-xs text-gray-500 font-medium">
+                        {formatTime(conversation.lastActivity)}
+                      </span>
                     </div>
                     
-                    {/* CONVERSATION PREVIEW - RESTORED */}
-                    <div className="mb-2 p-2 bg-gray-50 rounded text-xs text-gray-600 border">
-                      <div className="line-clamp-2 leading-relaxed">
-                        {conversation.lastMessage && conversation.lastMessageSender ? (
-                          <span>
-                            <strong>{conversation.lastMessageSender}:</strong> {conversation.lastMessage}
-                          </span>
-                        ) : (
-                          <span className="italic">No messages yet</span>
-                        )}
-                      </div>
+                    {/* Department and Priority Tags */}
+                    <div className="flex items-center space-x-2">
+                      {conversation.department && (
+                        <span className="px-2 py-1 bg-blue-100 text-blue-600 text-sm font-medium rounded">
+                          {conversation.department}
+                        </span>
+                      )}
+                      <span className="px-2 py-1 bg-yellow-100 text-yellow-600 text-sm font-medium rounded">
+                        {conversation.priority || 'Medium'}
+                      </span>
+                      {conversation.isEscalated && (
+                        <span className="px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full font-medium uppercase tracking-wide">
+                          <ArrowUp size={10} className="mr-1 inline" />
+                          ESCALATED
+                        </span>
+                      )}
                     </div>
                     
-                    <div className="flex-1 min-w-0">
-                     {/* Conversation Title and Department */}
-                     <div className="flex items-center justify-between mb-1">
-                       <h4 className="font-semibold text-gray-900 truncate uppercase tracking-wide text-sm">
-                         {conversation.title || 'Communication'}
-                       </h4>
-                       <div className="flex items-center space-x-2">
-                         {getPriorityIndicator(conversation.priority || 'low')}
-                         <span className="text-xs text-gray-500 font-medium">
-                           {formatTime(conversation.lastActivity)}
-                         </span>
-                       </div>
-                     </div>
-                     
-                     {/* Department Tag */}
-                     {conversation.department && (
-                       <div className="mb-2">
-                         <span className="inline-block px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full font-medium uppercase tracking-wide">
-                           {conversation.department}
-                         </span>
-                       </div>
-                     )}
-                     
-                     {/* Participants Info */}
-                     <div className="flex items-center space-x-1 mb-2">
-                       <span className="text-xs text-gray-600 font-medium uppercase tracking-wide">
-                         Started by: {conversation.createdBy === user?.id ? 'You' : 
-                           conversation.participants.find(p => p.id === conversation.createdBy)?.name || 'Unknown'}
-                       </span>
-                       {conversation.isEscalated && (
-                         <span className="px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full font-medium uppercase tracking-wide">
-                           <ArrowUp size={10} className="mr-1 inline" />
-                           ESCALATED
-                         </span>
-                       )}
-                     </div>
-                     
-                     {/* Message Preview */}
-                     <div className="space-y-1">
-                       <p className="text-sm text-gray-600 truncate font-medium">
-                         {typeof conversation.lastMessage === 'string' ? conversation.lastMessage : 'No messages yet'}
-                       </p>
-                       {conversation.lastMessage && (
-                         <div className="text-xs text-gray-500 bg-gray-100 p-2 rounded border">
-                           <p className="font-medium uppercase tracking-wide mb-1">CONVERSATION PREVIEW:</p>
-                           <p className="line-clamp-2">{typeof conversation.lastMessage === 'string' ? conversation.lastMessage : 'No messages yet'}</p>
-                         </div>
-                       )}
-                     </div>
+                    {/* Message Preview */}
+                    <div className="text-gray-600 text-sm">
+                      {typeof conversation.lastMessage === 'string' && conversation.lastMessage ? 
+                        conversation.lastMessage : 
+                        'hola'
+                      }
+                    </div>
+                    
+                    {/* Timestamp */}
+                    <div className="text-gray-400 text-xs">
+                      {formatTime(conversation.lastActivity)}
                     </div>
                   </div>
                 </motion.button>
