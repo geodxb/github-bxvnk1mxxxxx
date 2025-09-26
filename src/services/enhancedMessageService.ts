@@ -614,22 +614,46 @@ export class EnhancedMessageService {
         const data = doc.data();
         return {
           id: doc.id,
-          ...data,
+          type: data.type,
+          title: data.title,
+          description: data.description,
+          participants: this.parseParticipants(data),
+          participantNames: this.extractParticipantNames(data),
+          participantRoles: this.extractParticipantRoles(data),
+          createdBy: data.createdBy || '',
           createdAt: data.createdAt?.toDate() || new Date(),
           lastActivity: data.lastActivity?.toDate() || new Date(),
-          lastMessage: data.lastMessage || '',
+          lastMessage: lastMessage,
+          lastMessageSender: lastMessageSender,
+          lastMessageSenderRole: lastMessageSenderRole, // Add sender role for filtering
+          isEscalated: data.isEscalated || false,
           escalatedAt: data.escalatedAt?.toDate() || null,
-          participants: data.participants?.map((p: any) => ({
-            ...p,
-            joinedAt: p.joinedAt?.toDate() || new Date(),
-            lastSeen: p.lastSeen?.toDate() || null
-          })) || [],
+          escalatedBy: data.escalatedBy,
+          escalationReason: data.escalationReason,
+          status: data.status || 'active',
+          priority: data.priority || 'medium',
+          tags: data.tags || [],
+          department: data.department,
           auditTrail: data.auditTrail?.map((entry: any) => ({
             ...entry,
             timestamp: entry.timestamp?.toDate() || new Date()
           })) || []
         };
       }) as ConversationMetadata[];
+      
+      console.log('📊 Processed conversations:', allConversations.length);
+      
+      // Log each conversation for debugging
+      allConversations.forEach((conv, index) => {
+        console.log(`📋 Conversation ${index + 1}:`, {
+          id: conv.id,
+          title: conv.title,
+          participants: conv.participants,
+          participantNames: conv.participantNames,
+          lastMessage: conv.lastMessage,
+          lastActivity: conv.lastActivity
+        });
+      });
       
       console.log(`👑 Governor can see ${allConversations.length} total conversations`);
       return allConversations;
@@ -725,31 +749,6 @@ export class EnhancedMessageService {
             })) || []
           };
         }).filter(conv => {
-          // For admin/investor, show conversations they participate in OR conversations created by their role
-          const isParticipant = conv.participants.some((p: ConversationParticipant) => p.id === userId);
-          
-          // Also check if user's role matches any participant's role (for investor conversations)
-          const hasMatchingRole = conv.participants.some((p: ConversationParticipant) => p.role === userRole);
-          
-          console.log(`👤 User ${userId} participant check for ${conv.id}:`, isParticipant);
-          console.log(`👤 User role ${userRole} matches participant role:`, hasMatchingRole);
-          
-          return isParticipant || hasMatchingRole;
-        }) as ConversationMetadata[];
-        
-        console.log('📊 Processed conversations:', allConversations.length);
-        allConversations.forEach((conv, index) => {
-          console.log(`📋 Conversation ${index + 1}:`, {
-            id: conv.id,
-            title: conv.title,
-            participants: conv.participants,
-            participantNames: conv.participantNames,
-            lastMessage: conv.lastMessage
-          });
-        });
-        
-        // Filter conversations based on user role and participation
-        const filteredConversations = allConversations.filter(conv => {
           // GOVERNOR OVERRIDE: Governors can see ALL conversations
           if (userRole === 'governor') {
             console.log(`👑 Governor viewing conversation: ${conv.id} - ${conv.title}`);
@@ -770,25 +769,25 @@ export class EnhancedMessageService {
           console.log(`👤 User role ${userRole} created by same role:`, createdByUserRole);
           
           return isParticipant || hasMatchingRole || createdByUserRole;
-        });
+        }) as ConversationMetadata[];
         
-        console.log('🔄 Filtered conversations:', filteredConversations.length);
-        const sortedConversations = filteredConversations.sort((a, b) => 
-          b.lastActivity.getTime() - a.lastActivity.getTime()
-        );
-        
-        console.log('✅ Final sorted conversations:', sortedConversations.length);
-        sortedConversations.forEach((conv, index) => {
-          console.log(`📋 Final conversation ${index + 1}:`, {
+        console.log('📊 Processed conversations:', allConversations.length);
+        allConversations.forEach((conv, index) => {
+          console.log(`📋 Conversation ${index + 1}:`, {
             id: conv.id,
             title: conv.title,
             participants: conv.participants,
             participantNames: conv.participantNames,
-            lastMessage: conv.lastMessage,
-            lastActivity: conv.lastActivity
+            lastMessage: conv.lastMessage
           });
         });
         
+        // Sort conversations by last activity
+        const sortedConversations = allConversations.sort((a, b) => 
+          b.lastActivity.getTime() - a.lastActivity.getTime()
+        );
+        
+        console.log(`✅ Final conversations for ${userRole || 'user'}:`, sortedConversations.length);
         callback(sortedConversations);
       },
       (error) => {
@@ -1165,5 +1164,66 @@ export class EnhancedMessageService {
       console.error('❌ Error fetching available recipients:', error);
       return [];
     }
+  }
+
+  // Helper method to parse participants from conversation data
+  static parseParticipants(data: any): ConversationParticipant[] {
+    // Try to get participants from participantDetails first (new structure)
+    if (data.participantDetails && Array.isArray(data.participantDetails)) {
+      return data.participantDetails.map((p: any) => ({
+        id: p.id || '',
+        name: p.name || 'Unknown User',
+        role: p.role || 'investor',
+        email: p.email || '',
+        joinedAt: p.joinedAt?.toDate() || new Date()
+      }));
+    }
+    
+    // Fallback to legacy participants array
+    if (data.participants && Array.isArray(data.participants)) {
+      return data.participants.map((participantId: string, index: number) => ({
+        id: participantId,
+        name: data.participantNames?.[index] || 'Unknown User',
+        role: data.participantRoles?.[index] || 'investor',
+        email: '',
+        joinedAt: new Date()
+      }));
+    }
+    
+    return [];
+  }
+
+  // Helper method to extract participant names
+  static extractParticipantNames(data: any): string[] {
+    if (data.participantDetails && Array.isArray(data.participantDetails)) {
+      return data.participantDetails.map((p: any) => p.name || 'Unknown User');
+    }
+    
+    if (data.participantNames && Array.isArray(data.participantNames)) {
+      return data.participantNames;
+    }
+    
+    if (data.participants && Array.isArray(data.participants)) {
+      return data.participants.map(() => 'Unknown User');
+    }
+    
+    return [];
+  }
+
+  // Helper method to extract participant roles
+  static extractParticipantRoles(data: any): string[] {
+    if (data.participantDetails && Array.isArray(data.participantDetails)) {
+      return data.participantDetails.map((p: any) => p.role || 'investor');
+    }
+    
+    if (data.participantRoles && Array.isArray(data.participantRoles)) {
+      return data.participantRoles;
+    }
+    
+    if (data.participants && Array.isArray(data.participants)) {
+      return data.participants.map(() => 'investor');
+    }
+    
+    return [];
   }
 }

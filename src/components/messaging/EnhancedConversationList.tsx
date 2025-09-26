@@ -20,9 +20,24 @@ const EnhancedConversationList = ({
   const { conversations, loading } = useEnhancedConversations(user?.id || '');
   const [searchTerm, setSearchTerm] = useState('');
 
+  // Debug logging for conversations
+  useEffect(() => {
+    console.log('🔍 EnhancedConversationList received conversations:', conversations.length);
+    conversations.forEach((conv, index) => {
+      console.log(`📋 Conversation ${index + 1} in list:`, {
+        id: conv.id,
+        title: conv.title,
+        participants: conv.participants,
+        participantNames: conv.participantNames,
+        lastMessage: conv.lastMessage,
+        lastActivity: conv.lastActivity
+      });
+    });
+  }, [conversations]);
+
   const filteredConversations = conversations.filter(conv =>
     (conv.title || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-    conv.participants.some(p => p.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    conv.participants.some(p => (p.name || '').toLowerCase().includes(searchTerm.toLowerCase())) ||
     (conv.lastMessage || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
