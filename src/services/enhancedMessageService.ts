@@ -642,8 +642,7 @@ export class EnhancedMessageService {
   // Real-time listener for enhanced conversations
   static subscribeToEnhancedConversations(
     userId: string,
-    callback: (conversations: ConversationMetadata[]) => void,
-    userRole?: string
+    callback: (conversations: ConversationMetadata[]) => void
   ): () => void {
     console.log('🔄 Setting up real-time listener for enhanced conversations for userId:', userId);
     
@@ -697,8 +696,8 @@ export class EnhancedMessageService {
           
           return {
             id: doc.id,
-            type: data.type,
-            title: data.title,
+            type: data.type || 'admin_investor', // Changed 'admin_affiliate' to 'admin_investor'
+            title: data.title || 'Conversation',
             description: data.description,
             participants: data.participants || [],
             participantNames: data.participantNames || [],
@@ -721,18 +720,9 @@ export class EnhancedMessageService {
               timestamp: entry.timestamp?.toDate() || new Date()
             })) || []
           };
-        }).filter(conv => {
-          // For admin/investor, show conversations they participate in OR conversations created by their role
-          const isParticipant = conv.participants.some((p: ConversationParticipant) => p.id === userId);
-          
-          // Also check if user's role matches any participant's role (for investor conversations)
-          const hasMatchingRole = conv.participants.some((p: ConversationParticipant) => p.role === userRole);
-          
-          console.log(`👤 User ${userId} participant check for ${conv.id}:`, isParticipant);
-          console.log(`👤 User role ${userRole} matches participant role:`, hasMatchingRole);
-          
-          return isParticipant || hasMatchingRole;
-        }) as ConversationMetadata[];
+        }).filter(conv => 
+          conv.participants.some((p: ConversationParticipant) => p.id === userId)
+        ) as ConversationMetadata[];
         
         console.log('📊 Processed conversations:', allConversations.length);
         allConversations.forEach((conv, index) => {
