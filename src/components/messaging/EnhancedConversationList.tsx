@@ -17,7 +17,7 @@ const EnhancedConversationList = ({
   onNewConversation 
 }: EnhancedConversationListProps) => {
   const { user } = useAuth();
-  const { conversations, loading } = useEnhancedConversations(user?.id || '');
+  const { conversations, loading } = useEnhancedConversations(user?.id || '', user?.role || 'investor');
   const [searchTerm, setSearchTerm] = useState('');
 
   const filteredConversations = conversations.filter(conv =>

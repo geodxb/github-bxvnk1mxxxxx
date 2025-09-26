@@ -642,9 +642,10 @@ export class EnhancedMessageService {
   // Real-time listener for enhanced conversations
   static subscribeToEnhancedConversations(
     userId: string,
+    userRole: 'governor' | 'admin' | 'investor',
     callback: (conversations: ConversationMetadata[]) => void
   ): () => void {
-    console.log('🔄 Setting up real-time listener for enhanced conversations for userId:', userId);
+    console.log('🔄 Setting up real-time listener for enhanced conversations for userId:', userId, 'role:', userRole);
     
     // Query BOTH conversations and affiliateMessages collections to find all conversations
     const conversationsQuery = query(
