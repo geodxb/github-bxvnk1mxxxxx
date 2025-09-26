@@ -352,7 +352,7 @@ export class MessageService {
                 id: doc.id,
                 ...data,
                 senderName: data.senderName || 'Unknown User',
-                senderRole: data.senderRole || data.userRole || 'investor', 
+                senderRole: data.senderRole || 'investor', 
                 content: data.content || '',
                 timestamp: data.timestamp?.toDate() || data.createdAt?.toDate() || new Date(),
                 createdAt: data.createdAt?.toDate() || new Date(),
@@ -509,44 +509,37 @@ export class MessageService {
       console.log('👑 Governor accessing ALL conversations for oversight');
       conversationsQuery = query(
         collection(db, 'conversations'),
-        orderBy('updatedAt', 'desc')
+        orderBy('createdAt', 'desc')
       );
     } else {
       // Regular users only see their own conversations
       conversationsQuery = query(
         collection(db, 'conversations'),
         where('participants', 'array-contains', userId),
-        orderBy('updatedAt', 'desc')
+        orderBy('createdAt', 'desc')
       );
     }
     
     const unsubscribe = onSnapshot(
       conversationsQuery,
       (querySnapshot) => {
-        console.log(`🔄 RAW CONVERSATIONS FOUND: ${querySnapshot.docs.length} documents`);
-        console.log(`🔄 Looking for conversation ID: BBZTQC4luu3mFfwEs1EY`);
+        console.log(`🔄 Conversations updated in real-time for ${userRole === 'governor' ? 'GOVERNOR (ALL)' : 'USER'}: ${querySnapshot.docs.length} conversations`);
         
         // Log each conversation found
         querySnapshot.docs.forEach((doc, index) => {
           const data = doc.data();
-          console.log(`📋 RAW Conversation ${index + 1} (${doc.id}):`, {
+          console.log(`📋 Conversation ${index + 1} (${doc.id}):`, {
             title: data.title,
             participants: data.participants,
             participantDetails: data.participantDetails,
             lastMessage: data.lastMessage,
             department: data.department,
-            recipientType: data.recipientType,
-            isTargetConversation: doc.id === 'BBZTQC4luu3mFfwEs1EY'
+            recipientType: data.recipientType
           });
         });
         
         const conversations = querySnapshot.docs.map(doc => {
           const data = doc.data();
-          
-          // Special logging for the target conversation
-          if (doc.id === 'BBZTQC4luu3mFfwEs1EY') {
-            console.log('🎯 FOUND TARGET CONVERSATION BBZTQC4luu3mFfwEs1EY:', data);
-          }
           
           // Handle new structure with lastMessage as object
           let lastMessage = '';
@@ -594,34 +587,21 @@ export class MessageService {
             recipientType: data.recipientType || 'admin',
             updatedAt: data.updatedAt?.toDate() || data.createdAt?.toDate() || new Date()
           };
-        }) as Conversation[];
-        
-        // Apply filtering AFTER mapping
-        const filteredConversations = conversations.filter(conv => {
-          // Special logging for target conversation
-          if (conv.id === 'BBZTQC4luu3mFfwEs1EY') {
-            console.log('🎯 FILTERING TARGET CONVERSATION:', {
-              id: conv.id,
-              title: conv.title,
-              participants: conv.participants,
-              userRole,
-              userId,
-              shouldShow: userRole === 'governor' || conv.participants.includes(userId)
-            });
-          }
-          
+        }).filter(conv => {
           // For governor, show ALL conversations
           if (userRole === 'governor') {
+            console.log(`👑 Governor viewing conversation: ${conv.id} - ${conv.title}`);
             return true;
           }
           
           // For admin/investor, show only conversations they participate in
-          return conv.participants.includes(userId);
-        });
+          const isParticipant = conv.participants.includes(userId);
+          console.log(`👤 User ${userId} participant check for ${conv.id}:`, isParticipant);
+          return isParticipant;
+        }) as Conversation[];
         
-        console.log(`✅ Final conversations for ${userRole || 'user'}:`, filteredConversations.length);
-        console.log('🎯 Target conversation in final list:', filteredConversations.some(c => c.id === 'BBZTQC4luu3mFfwEs1EY'));
-        callback(filteredConversations);
+        console.log(`✅ Final conversations for ${userRole || 'user'}:`, conversations.length);
+        callback(conversations);
       },
       (error) => {
         console.error('❌ Real-time listener failed for conversations:', error);

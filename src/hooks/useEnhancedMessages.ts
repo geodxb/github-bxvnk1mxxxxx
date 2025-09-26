@@ -4,20 +4,20 @@ import { db } from '../lib/firebase';
 import { EnhancedMessageService } from '../services/enhancedMessageService';
 import { ConversationMetadata, EnhancedMessage } from '../types/conversation';
 
-export const useEnhancedConversations = (userId: string, userRole: 'governor' | 'admin' | 'investor') => {
+export const useEnhancedConversations = (userId: string) => {
   const [conversations, setConversations] = useState<ConversationMetadata[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!userId || !userRole) {
+    if (!userId) {
       setLoading(false);
       return;
     }
 
     // Set up real-time listener
     console.log('🔄 Setting up real-time listener for conversations...');
-    const unsubscribe = EnhancedMessageService.subscribeToEnhancedConversations(userId, userRole, (updatedConversations) => {
+    const unsubscribe = EnhancedMessageService.subscribeToEnhancedConversations(userId, (updatedConversations) => {
       console.log('🔄 Real-time update: Conversations updated');
       setConversations(updatedConversations);
       setLoading(false);
@@ -29,7 +29,7 @@ export const useEnhancedConversations = (userId: string, userRole: 'governor' | 
       console.log('🔄 Cleaning up real-time listener for conversations');
       unsubscribe();
     };
-  }, [userId, userRole]);
+  }, [userId]);
 
   return { conversations, loading, error };
 };
