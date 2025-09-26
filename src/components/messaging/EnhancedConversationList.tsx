@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useEnhancedConversations } from '../../hooks/useEnhancedMessages';
 import { useAuth } from '../../contexts/AuthContext';
@@ -9,45 +9,20 @@ interface EnhancedConversationListProps {
   selectedConversationId: string | null;
   onSelectConversation: (conversationId: string) => void;
   onNewConversation: () => void;
-  onConversationDataLoaded?: (conversations: ConversationMetadata[]) => void;
 }
 
 const EnhancedConversationList = ({ 
   selectedConversationId, 
   onSelectConversation,
-  onNewConversation,
-  onConversationDataLoaded
+  onNewConversation 
 }: EnhancedConversationListProps) => {
   const { user } = useAuth();
   const { conversations, loading } = useEnhancedConversations(user?.id || '');
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Pass conversation data to parent when loaded
-  useEffect(() => {
-    if (onConversationDataLoaded && conversations.length > 0) {
-      console.log('📤 Passing conversation data to parent:', conversations.length);
-      onConversationDataLoaded(conversations);
-    }
-  }, [conversations, onConversationDataLoaded]);
-
-  // Debug logging for conversations
-  useEffect(() => {
-    console.log('🔍 EnhancedConversationList received conversations:', conversations.length);
-    conversations.forEach((conv, index) => {
-      console.log(`📋 Conversation ${index + 1} in list:`, {
-        id: conv.id,
-        title: conv.title,
-        participants: conv.participants,
-        participantNames: conv.participantNames,
-        lastMessage: conv.lastMessage,
-        lastActivity: conv.lastActivity
-      });
-    });
-  }, [conversations]);
-
   const filteredConversations = conversations.filter(conv =>
     (conv.title || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-    conv.participants.some(p => (p.name || '').toLowerCase().includes(searchTerm.toLowerCase())) ||
+    conv.participants.some(p => p.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
     (conv.lastMessage || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -167,7 +142,7 @@ const EnhancedConversationList = ({
                   key={conversation.id}
                   onClick={() => onSelectConversation(conversation.id)}
                   whileHover={{ scale: 1.02 }}
-                  className={`w-full text-left p-4 rounded-lg transition-all cursor-pointer ${
+                  className={`w-full text-left p-4 rounded-lg transition-all ${
                     selectedConversationId === conversation.id
                       ? 'bg-gray-100 border border-gray-300'
                       : 'hover:bg-gray-50 border border-transparent'
@@ -177,7 +152,7 @@ const EnhancedConversationList = ({
                     {/* Conversation Title */}
                     <div className="flex items-center justify-between">
                       <h4 className="font-semibold text-gray-900 text-lg">
-                        {conversation.title || 'Conversation'}
+                        {conversation.title || 'help'}
                       </h4>
                       <span className="text-xs text-gray-500 font-medium">
                         {formatTime(conversation.lastActivity)}
@@ -206,7 +181,7 @@ const EnhancedConversationList = ({
                     <div className="text-gray-600 text-sm">
                       {typeof conversation.lastMessage === 'string' && conversation.lastMessage ? 
                         conversation.lastMessage : 
-                        'No messages yet'
+                        'hola'
                       }
                     </div>
                     

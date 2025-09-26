@@ -614,46 +614,22 @@ export class EnhancedMessageService {
         const data = doc.data();
         return {
           id: doc.id,
-          type: data.type,
-          title: data.title,
-          description: data.description,
-          participants: this.parseParticipants(data),
-          participantNames: this.extractParticipantNames(data),
-          participantRoles: this.extractParticipantRoles(data),
-          createdBy: data.createdBy || '',
+          ...data,
           createdAt: data.createdAt?.toDate() || new Date(),
           lastActivity: data.lastActivity?.toDate() || new Date(),
-          lastMessage: lastMessage,
-          lastMessageSender: lastMessageSender,
-          lastMessageSenderRole: lastMessageSenderRole, // Add sender role for filtering
-          isEscalated: data.isEscalated || false,
+          lastMessage: data.lastMessage || '',
           escalatedAt: data.escalatedAt?.toDate() || null,
-          escalatedBy: data.escalatedBy,
-          escalationReason: data.escalationReason,
-          status: data.status || 'active',
-          priority: data.priority || 'medium',
-          tags: data.tags || [],
-          department: data.department,
+          participants: data.participants?.map((p: any) => ({
+            ...p,
+            joinedAt: p.joinedAt?.toDate() || new Date(),
+            lastSeen: p.lastSeen?.toDate() || null
+          })) || [],
           auditTrail: data.auditTrail?.map((entry: any) => ({
             ...entry,
             timestamp: entry.timestamp?.toDate() || new Date()
           })) || []
         };
       }) as ConversationMetadata[];
-      
-      console.log('📊 Processed conversations:', allConversations.length);
-      
-      // Log each conversation for debugging
-      allConversations.forEach((conv, index) => {
-        console.log(`📋 Conversation ${index + 1}:`, {
-          id: conv.id,
-          title: conv.title,
-          participants: conv.participants,
-          participantNames: conv.participantNames,
-          lastMessage: conv.lastMessage,
-          lastActivity: conv.lastActivity
-        });
-      });
       
       console.log(`👑 Governor can see ${allConversations.length} total conversations`);
       return allConversations;
@@ -698,7 +674,7 @@ export class EnhancedMessageService {
           return;
         }
         
-        const allConversations: ConversationMetadata[] = querySnapshot.docs.map(doc => {
+        const allConversations = querySnapshot.docs.map(doc => {
           const data = doc.data();
           
           console.log(`🔍 Processing conversation ${doc.id}:`, data);
@@ -706,14 +682,12 @@ export class EnhancedMessageService {
           // Ensure lastMessage and lastMessageSender are always strings
           let lastMessage = '';
           let lastMessageSender = '';
-          let lastMessageSenderRole = '';
           
           if (data.lastMessage) {
             if (typeof data.lastMessage === 'object' && data.lastMessage.content) {
               // If lastMessage is an object, extract the content
               lastMessage = data.lastMessage.content;
               lastMessageSender = data.lastMessage.senderName || data.lastMessageSender || '';
-              lastMessageSenderRole = data.lastMessage.senderRole || '';
             } else if (typeof data.lastMessage === 'string') {
               // If lastMessage is already a string, use it directly
               lastMessage = data.lastMessage;
@@ -734,7 +708,6 @@ export class EnhancedMessageService {
             lastActivity: data.lastActivity?.toDate() || new Date(),
             lastMessage: lastMessage,
             lastMessageSender: lastMessageSender,
-            lastMessageSenderRole: lastMessageSenderRole, // Add sender role for filtering
             isEscalated: data.isEscalated || false,
             escalatedAt: data.escalatedAt?.toDate() || null,
             escalatedBy: data.escalatedBy,
@@ -749,76 +722,47 @@ export class EnhancedMessageService {
             })) || []
           };
         }).filter(conv => {
-          // GOVERNOR OVERRIDE: Governors can see ALL conversations
-          if (userRole === 'governor') {
-            console.log(`👑 Governor viewing conversation: ${conv.id} - ${conv.title}`);
-            return true;
-          }
-          
-          // For admin/investor, show conversations they participate in OR conversations involving their role
+          // For admin/investor, show conversations they participate in OR conversations created by their role
           const isParticipant = conv.participants.some((p: ConversationParticipant) => p.id === userId);
           
           // Also check if user's role matches any participant's role (for investor conversations)
           const hasMatchingRole = conv.participants.some((p: ConversationParticipant) => p.role === userRole);
           
-          // Check if conversation was created by someone with the same role
-          const createdByUserRole = conv.participants.some((p: ConversationParticipant) => p.role === userRole);
-          
           console.log(`👤 User ${userId} participant check for ${conv.id}:`, isParticipant);
           console.log(`👤 User role ${userRole} matches participant role:`, hasMatchingRole);
-          console.log(`👤 User role ${userRole} created by same role:`, createdByUserRole);
           
-          return isParticipant || hasMatchingRole || createdByUserRole;
+          return isParticipant || hasMatchingRole;
         }) as ConversationMetadata[];
         
-        // GOVERNOR OVERRIDE: Governors can see ALL conversations without any filtering
-        if (userRole === 'governor') {
-          console.log(`👑 GOVERNOR OVERRIDE: Showing ALL ${allConversations.length} conversations`);
-          allConversations.forEach((conv, index) => {
-            console.log(`👑 Governor conversation ${index + 1}:`, {
-              id: conv.id,
-              title: conv.title,
-              participants: conv.participants,
-              participantNames: conv.participantNames,
-              lastMessage: conv.lastMessage
-            });
+        console.log('📊 Processed conversations:', allConversations.length);
+        allConversations.forEach((conv, index) => {
+          console.log(`📋 Conversation ${index + 1}:`, {
+            id: conv.id,
+            title: conv.title,
+            participants: conv.participants,
+            participantNames: conv.participantNames,
+            lastMessage: conv.lastMessage
           });
-          
-          const sortedConversations = allConversations.sort((a, b) => 
-            b.lastActivity.getTime() - a.lastActivity.getTime()
-          );
-          
-          console.log(`👑 Final conversations for GOVERNOR:`, sortedConversations.length);
-          callback(sortedConversations);
-          return;
-        }
-        
-        // For non-governor users, apply filtering
-        const filteredConversations = allConversations.filter(conv => {
-          // For admin/investor, show conversations they participate in OR conversations involving their role
-          const isParticipant = conv.participants.some((p: ConversationParticipant) => p.id === userId);
-          
-          // Also check if user's role matches any participant's role (for investor conversations)
-          const hasMatchingRole = conv.participants.some((p: ConversationParticipant) => p.role === userRole);
-          
-          // Check if conversation was created by someone with the same role
-          const createdByUserRole = conv.participants.some((p: ConversationParticipant) => p.role === userRole);
-          
-          console.log(`👤 User ${userId} participant check for ${conv.id}:`, isParticipant);
-          console.log(`👤 User role ${userRole} matches participant role:`, hasMatchingRole);
-          console.log(`👤 User role ${userRole} created by same role:`, createdByUserRole);
-          
-          return isParticipant || hasMatchingRole || createdByUserRole;
         });
         
-        console.log('📊 Filtered conversations for non-governor:', filteredConversations.length);
-        
-        // Sort conversations by last activity
-        const sortedConversations = filteredConversations.sort((a, b) => 
+        // For now, show ALL conversations to debug the issue
+        console.log('🔄 Showing ALL conversations for debugging');
+        const sortedConversations = allConversations.sort((a, b) => 
           b.lastActivity.getTime() - a.lastActivity.getTime()
         );
         
-        console.log(`✅ Final conversations for ${userRole || 'user'}:`, sortedConversations.length);
+        console.log('✅ Final sorted conversations:', sortedConversations.length);
+        sortedConversations.forEach((conv, index) => {
+          console.log(`📋 Final conversation ${index + 1}:`, {
+            id: conv.id,
+            title: conv.title,
+            participants: conv.participants,
+            participantNames: conv.participantNames,
+            lastMessage: conv.lastMessage,
+            lastActivity: conv.lastActivity
+          });
+        });
+        
         callback(sortedConversations);
       },
       (error) => {
@@ -1195,81 +1139,5 @@ export class EnhancedMessageService {
       console.error('❌ Error fetching available recipients:', error);
       return [];
     }
-  }
-
-  // Helper method to parse participants from conversation data
-  static parseParticipants(data: any): ConversationParticipant[] {
-    console.log('🔍 Parsing participants from data:', {
-      hasParticipantDetails: !!data.participantDetails,
-      hasParticipants: !!data.participants,
-      hasParticipantNames: !!data.participantNames,
-      participantDetailsLength: data.participantDetails?.length,
-      participantsLength: data.participants?.length,
-      participantNamesLength: data.participantNames?.length
-    });
-    
-    // Try to get participants from participantDetails first (new structure)
-    if (data.participantDetails && Array.isArray(data.participantDetails)) {
-      console.log('✅ Using participantDetails structure');
-      return data.participantDetails.map((p: any) => ({
-        id: p.id || '',
-        name: p.name || 'Unknown User',
-        role: p.role || 'investor', // Changed 'affiliate' to 'investor'
-        email: p.email || '',
-        joinedAt: p.joinedAt?.toDate() || new Date()
-      }));
-    }
-    
-    // Fallback to legacy participants array
-    if (data.participants && Array.isArray(data.participants)) {
-      console.log('⚠️ Using legacy participants structure');
-      return data.participants.map((participantId: string, index: number) => ({
-        id: participantId,
-        name: data.participantNames?.[index] || 'Unknown User',
-        role: data.participantRoles?.[index] || 'investor', // Changed 'affiliate' to 'investor'
-        email: '',
-        joinedAt: new Date()
-      }));
-    }
-    
-    console.log('❌ No valid participant data found, returning empty array');
-    return [];
-  }
-
-  // Helper method to extract participant names
-  static extractParticipantNames(data: any): string[] {
-    if (data.participantDetails && Array.isArray(data.participantDetails)) {
-      return data.participantDetails.map((p: any) => p.name || 'Unknown User');
-    }
-    
-    if (data.participantNames && Array.isArray(data.participantNames)) {
-      return data.participantNames;
-    }
-    
-    if (data.participants && Array.isArray(data.participants)) {
-      return data.participants.map((participantId: string) => {
-        // Try to extract name from participant ID or use fallback
-        return participantId.includes('_') ? participantId.split('_')[0] : 'Unknown User';
-      });
-    }
-    
-    return [];
-  }
-
-  // Helper method to extract participant roles
-  static extractParticipantRoles(data: any): string[] {
-    if (data.participantDetails && Array.isArray(data.participantDetails)) {
-      return data.participantDetails.map((p: any) => p.role || 'investor');
-    }
-    
-    if (data.participantRoles && Array.isArray(data.participantRoles)) {
-      return data.participantRoles;
-    }
-    
-    if (data.participants && Array.isArray(data.participants)) {
-      return data.participants.map(() => 'investor'); // Changed 'affiliate' to 'investor'
-    }
-    
-    return [];
   }
 }

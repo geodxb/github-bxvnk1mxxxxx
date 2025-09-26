@@ -6,7 +6,7 @@ import { EnhancedMessageService } from '../../services/enhancedMessageService';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAvailableRecipients } from '../../hooks/useEnhancedMessages';
 import { ConversationMetadata } from '../../types/conversation';
-import { MessageSquare, Send, Users, Shield, Building, TriangleAlert as AlertTriangle, DollarSign, User, Crown, Eye } from 'lucide-react';
+import { MessageSquare, Send, Users, Shield, Building, AlertTriangle, DollarSign, User, Crown, Eye } from 'lucide-react';
 
 const GovernorEnhancedMessagesPage = () => {
   const { user } = useAuth();
@@ -25,39 +25,6 @@ const GovernorEnhancedMessagesPage = () => {
   const [showAuditView, setShowAuditView] = useState(false);
   const [allConversations, setAllConversations] = useState<ConversationMetadata[]>([]);
 
-  // Handle conversation selection with proper state updates
-  const handleSelectConversation = (conversationId: string) => {
-    console.log('🔄 Governor selecting conversation:', conversationId);
-    console.log('🔄 Available conversations:', allConversations.length);
-    console.log('🔄 Looking for conversation with ID:', conversationId);
-    
-    // Find the conversation object from available conversations
-    setSelectedConversationId(conversationId);
-    
-    // Immediately try to find and set the conversation object
-    const conversation = allConversations.find(conv => conv.id === conversationId);
-    if (conversation) {
-      console.log('✅ Found conversation object immediately:', conversation.title);
-      setSelectedConversation(conversation);
-    } else {
-      console.log('⚠️ Conversation object not found immediately, will be set when available');
-      setSelectedConversation(null);
-    }
-    
-    // Clear the new message form when selecting a conversation
-    setShowNewMessageForm(false);
-  };
-
-  // Update selected conversation when conversations are loaded
-  useEffect(() => {
-    if (selectedConversationId && allConversations.length > 0) {
-      const conversation = allConversations.find(conv => conv.id === selectedConversationId);
-      if (conversation) {
-        console.log('✅ Found conversation object for selected ID:', conversation);
-        setSelectedConversation(conversation);
-      }
-    }
-  }, [selectedConversationId, allConversations]);
   // Department options for Governor
   const departments = [
     { id: 'general', label: 'GENERAL OVERSIGHT', icon: <User size={16} />, color: 'text-gray-700' },
@@ -235,9 +202,8 @@ const GovernorEnhancedMessagesPage = () => {
         {/* Enhanced Conversation List */}
         <EnhancedConversationList
           selectedConversationId={selectedConversationId}
-          onSelectConversation={handleSelectConversation}
+          onSelectConversation={setSelectedConversationId}
           onNewConversation={handleNewConversation}
-          onConversationDataLoaded={setAllConversations}
         />
         
         {/* Enhanced Message Thread */}

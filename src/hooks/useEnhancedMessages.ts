@@ -43,46 +43,33 @@ export const useEnhancedMessages = (conversationId: string) => {
 
   useEffect(() => {
     if (!conversationId) {
-      console.log('⚠️ useEnhancedMessages: No conversationId provided');
+      console.log('⚠️ No conversationId provided to useEnhancedMessages');
       setLoading(false);
-      setMessages([]);
-      setError(null);
       return;
     }
 
     console.log('🔄 useEnhancedMessages: Setting up listener for conversation:', conversationId);
-    setLoading(true);
     
     // Set up real-time listener
     const unsubscribe = EnhancedMessageService.subscribeToEnhancedMessages(conversationId, (updatedMessages) => {
       try {
-        console.log('🔄 useEnhancedMessages: Real-time update received for conversation', conversationId, ':', updatedMessages.length, 'messages');
-        
-        // Log each message for debugging
-        updatedMessages.forEach((msg, index) => {
-          console.log(`📨 Message ${index + 1}:`, {
-            id: msg.id,
-            sender: `${msg.senderName} (${msg.senderRole})`,
-            content: msg.content?.substring(0, 50) + '...',
-            timestamp: msg.timestamp
-          });
-        });
+        console.log('🔄 Real-time update: Enhanced messages updated:', updatedMessages.length);
         
         // Validate messages before setting state
         const validMessages = updatedMessages.filter(msg => {
           if (!msg || !msg.id || !msg.timestamp) {
-            console.error('❌ useEnhancedMessages: Invalid message found:', msg);
+            console.error('❌ Invalid message found:', msg);
             return false;
           }
           return true;
         });
         
-        console.log('✅ useEnhancedMessages: Valid messages after filtering:', validMessages.length);
+        console.log('✅ Valid messages after filtering:', validMessages.length);
         setMessages(validMessages);
         setLoading(false);
         setError(null);
       } catch (error) {
-        console.error('❌ useEnhancedMessages: Error processing messages update:', error);
+        console.error('❌ Error processing enhanced messages update:', error);
         setMessages([]);
         setLoading(false);
         setError('Failed to load messages');
@@ -91,7 +78,7 @@ export const useEnhancedMessages = (conversationId: string) => {
 
     // Cleanup listener on unmount
     return () => {
-      console.log('🔄 useEnhancedMessages: Cleaning up listener for conversation:', conversationId);
+      console.log('🔄 Cleaning up real-time listener for enhanced messages:', conversationId);
       unsubscribe();
     };
   }, [conversationId]);

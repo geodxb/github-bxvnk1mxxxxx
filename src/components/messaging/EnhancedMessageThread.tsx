@@ -4,6 +4,7 @@ import { EnhancedMessageService } from '../../services/enhancedMessageService';
 import { MessageService } from '../../services/messageService';
 import { useAuth } from '../../contexts/AuthContext';
 import { useEnhancedMessages } from '../../hooks/useEnhancedMessages';
+import { useMessages } from '../../hooks/useMessages';
 import { EnhancedMessage, ConversationMetadata } from '../../types/conversation';
 import { Send, Reply, Crown, Shield, Users, TriangleAlert as AlertTriangle, ArrowUp, Eye, CircleCheck as CheckCircle, Clock, User, MessageSquare, Paperclip, Download, FileText, Image, File, X, ZoomIn } from 'lucide-react';
 
@@ -31,11 +32,9 @@ const EnhancedMessageThread = ({
 }: EnhancedMessageThreadProps) => {
   const { user } = useAuth();
   const { messages: enhancedMessages, loading: enhancedLoading } = useEnhancedMessages(conversationId);
-  
-  // State for final messages to display
-  const [allMessages, setAllMessages] = useState<EnhancedMessage[]>([]);
+  const { messages: regularMessages, loading: regularLoading } = useMessages(conversationId);
+  const [allMessages, setAllMessages] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  
   const [newMessage, setNewMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [replyingTo, setReplyingTo] = useState<EnhancedMessage | null>(null);
@@ -50,71 +49,75 @@ const EnhancedMessageThread = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Debug logging for conversation and messages
+  // Merge and sort messages from both collections
   useEffect(() => {
-    console.log('🔍 EnhancedMessageThread received props:', {
-      conversationId,
-      hasConversation: !!conversation,
-      conversationTitle: conversation?.title,
-      conversationParticipants: conversation?.participants?.length || 0
+    console.log('🔄 EnhancedMessageThread: Processing messages...', {
+      enhancedLoading,
+      regularLoading,
+      enhancedMessagesCount: enhancedMessages.length,
+      regularMessagesCount: regularMessages.length
     });
     
-    // If we have a conversationId but no conversation object, log this
-    if (conversationId && !conversation) {
-      console.log('⚠️ EnhancedMessageThread: Have conversationId but no conversation object');
-    }
-  }, [conversationId, conversation]);
-
-  // Process and merge messages from enhanced hook
-  useEffect(() => {
-    console.log('🔄 Processing enhanced messages:', {
-      conversationId,
-      enhancedMessagesCount: enhancedMessages.length,
-      enhancedLoading
-    });
-
-    if (!conversationId || !conversationId.trim()) {
-      console.log('❌ No conversationId provided to EnhancedMessageThread');
-      setAllMessages([]);
-      setLoading(false);
-      return;
-    }
-
-    if (enhancedLoading) {
-      console.log('⏳ Enhanced messages still loading...');
-      setLoading(true);
-      return;
-    }
-
-    console.log('📨 Enhanced messages received:', enhancedMessages.length);
-    enhancedMessages.forEach((msg, index) => {
-      console.log(`📨 Message ${index + 1}:`, {
-        id: msg.id,
-        sender: `${msg.senderName} (${msg.senderRole})`,
-        content: msg.content?.substring(0, 50) + '...',
-        conversationId: msg.conversationId
+    if (!enhancedLoading && !regularLoading) {
+      try {
+      const allMessagesList = [];
+      
+      enhancedMessages.forEach(msg => {
+        allMessagesList.push({
+          ...msg,
+          source: 'enhanced'
+        });
       });
-    });
-
-    // Use enhanced messages as the primary source
-    let finalMessages = [...enhancedMessages];
-
-    // Sort messages by timestamp
-    finalMessages.sort((a, b) => {
-      const timeA = a.timestamp?.getTime() || 0;
-      const timeB = b.timestamp?.getTime() || 0;
-      return timeA - timeB;
-    });
-
-    console.log('✅ Final messages processed:', {
-      totalMessages: finalMessages.length,
-      messageIds: finalMessages.map(m => m.id),
-      messageSenders: finalMessages.map(m => `${m.senderName} (${m.senderRole})`)
-    });
-
-    setAllMessages(finalMessages);
-    setLoading(false);
-  }, [conversationId, enhancedMessages, enhancedLoading]);
+      
+      regularMessages.forEach(msg => {
+        const existsInEnhanced = enhancedMessages.some(eMsg => 
+          eMsg.id === msg.id || 
+          (Math.abs(new Date(eMsg.timestamp).getTime() - new Date(msg.timestamp).getTime()) < 1000 && 
+           eMsg.content === msg.content)
+        );
+        
+          if (!msg || !msg.id) {
+            console.error('❌ Invalid regular message found:', msg);
+            return;
+          }
+          
+        console.log('📨 Processing enhanced messages...');
+        if (!existsInEnhanced) {
+          if (!msg || !msg.id) {
+            console.error('❌ Invalid enhanced message found:', msg);
+            return;
+          }
+          allMessagesList.push({
+            ...msg,
+            source: 'regular',
+            senderRole: msg.senderRole || 'affiliate',
+            priority: msg.priority || 'medium',
+            status: msg.status || 'sent',
+            readBy: [],
+            messageType: 'text',
+            isEscalation: false
+          });
+        }
+      });
+      
+        console.log('📊 Sorting messages...', { totalMessages: allMessagesList.length });
+      const sorted = allMessagesList.sort((a, b) => 
+        new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+      );
+      
+        console.log('✅ Messages processed successfully:', sorted.length);
+      setAllMessages(sorted);
+      setLoading(false);
+      } catch (error) {
+        console.error('❌ Error processing messages:', error);
+        setAllMessages([]);
+        setLoading(false);
+      }
+    } else {
+      console.log('⏳ Still loading messages...', { enhancedLoading, regularLoading });
+      setLoading(true);
+    }
+  }, [enhancedMessages, regularMessages, enhancedLoading, regularLoading]);
 
   useEffect(() => {
     if (messagesEndRef.current) {
@@ -247,23 +250,13 @@ const EnhancedMessageThread = ({
   };
 
   const handleSendMessage = async () => {
-    if ((!newMessage.trim() && attachedDocuments.length === 0) || !user || isLoading) {
-      console.log('❌ Cannot send message:', {
-        hasMessage: !!newMessage.trim(),
-        hasAttachments: attachedDocuments.length > 0,
-        hasUser: !!user,
-        isLoading
-      });
-      return;
-    }
+    if ((!newMessage.trim() && attachedDocuments.length === 0) || !user || isLoading) return;
 
     setIsLoading(true);
     
     try {
-      console.log('🔄 Sending message from:', user.name, 'Role:', user.role, 'To conversation:', conversationId);
-      
       const messageRole = user.role === 'admin' ? 'admin' : 
-                         user.role === 'governor' ? 'governor' : 'investor';
+                         user.role === 'governor' ? 'governor' : 'affiliate';
 
       const attachmentUrls = attachedDocuments.map(doc => ({
         url: doc.url,
@@ -272,8 +265,6 @@ const EnhancedMessageThread = ({
         size: doc.size
       }));
 
-      console.log('📨 Attempting to send enhanced message...');
-      
       try {
         const messageId = await EnhancedMessageService.sendEnhancedMessage(
           conversationId,
@@ -289,10 +280,9 @@ const EnhancedMessageThread = ({
           'text',
           attachmentUrls
         );
-        
         console.log('✅ Enhanced message sent successfully:', messageId);
       } catch (enhancedError) {
-        console.log('⚠️ Enhanced message failed, trying regular message service:', enhancedError);
+        console.log('⚠️ Enhanced message failed, using regular message service:', enhancedError);
         
         const messageId = await MessageService.sendMessage(
           user.id,
