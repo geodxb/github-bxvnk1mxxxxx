@@ -168,9 +168,9 @@ const EnhancedConversationList = ({
                     {/* CONVERSATION PREVIEW - RESTORED */}
                     <div className="mb-2 p-2 bg-gray-50 rounded text-xs text-gray-600 border">
                       <div className="line-clamp-2 leading-relaxed">
-                        {conversation.lastMessage ? (
+                        {conversation.lastMessage && conversation.lastMessageSender ? (
                           <span>
-                            <strong>{conversation.lastMessage.senderName}:</strong> {conversation.lastMessage.content}
+                            <strong>{conversation.lastMessageSender}:</strong> {conversation.lastMessage}
                           </span>
                         ) : (
                           <span className="italic">No messages yet</span>
@@ -218,12 +218,12 @@ const EnhancedConversationList = ({
                      {/* Message Preview */}
                      <div className="space-y-1">
                        <p className="text-sm text-gray-600 truncate font-medium">
-                         {conversation.lastMessage || 'No messages yet'}
+                         {typeof conversation.lastMessage === 'string' ? conversation.lastMessage : 'No messages yet'}
                        </p>
                        {conversation.lastMessage && (
                          <div className="text-xs text-gray-500 bg-gray-100 p-2 rounded border">
                            <p className="font-medium uppercase tracking-wide mb-1">CONVERSATION PREVIEW:</p>
-                           <p className="line-clamp-2">{conversation.lastMessage}</p>
+                           <p className="line-clamp-2">{typeof conversation.lastMessage === 'string' ? conversation.lastMessage : 'No messages yet'}</p>
                          </div>
                        )}
                      </div>

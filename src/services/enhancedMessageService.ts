@@ -677,6 +677,22 @@ export class EnhancedMessageService {
           
           console.log(`🔍 Processing conversation ${doc.id}:`, data);
           
+          // Ensure lastMessage and lastMessageSender are always strings
+          let lastMessage = '';
+          let lastMessageSender = '';
+          
+          if (data.lastMessage) {
+            if (typeof data.lastMessage === 'object' && data.lastMessage.content) {
+              // If lastMessage is an object, extract the content
+              lastMessage = data.lastMessage.content;
+              lastMessageSender = data.lastMessage.senderName || data.lastMessageSender || '';
+            } else if (typeof data.lastMessage === 'string') {
+              // If lastMessage is already a string, use it directly
+              lastMessage = data.lastMessage;
+              lastMessageSender = data.lastMessageSender || '';
+            }
+          }
+          
           return {
             id: doc.id,
             type: data.type || 'admin_investor', // Changed 'admin_affiliate' to 'admin_investor'
@@ -688,8 +704,8 @@ export class EnhancedMessageService {
             createdBy: data.createdBy || '',
             createdAt: data.createdAt?.toDate() || new Date(),
             lastActivity: data.lastActivity?.toDate() || new Date(),
-            lastMessage: data.lastMessage || '',
-            lastMessageSender: data.lastMessageSender || '',
+            lastMessage: lastMessage,
+            lastMessageSender: lastMessageSender,
             isEscalated: data.isEscalated || false,
             escalatedAt: data.escalatedAt?.toDate() || null,
             escalatedBy: data.escalatedBy,
