@@ -674,7 +674,7 @@ export class EnhancedMessageService {
           return;
         }
         
-        const allConversations = querySnapshot.docs.map(doc => {
+        const allConversations: ConversationMetadata[] = querySnapshot.docs.map(doc => {
           const data = doc.data();
           
           console.log(`🔍 Processing conversation ${doc.id}:`, data);
@@ -682,12 +682,14 @@ export class EnhancedMessageService {
           // Ensure lastMessage and lastMessageSender are always strings
           let lastMessage = '';
           let lastMessageSender = '';
+          let lastMessageSenderRole = '';
           
           if (data.lastMessage) {
             if (typeof data.lastMessage === 'object' && data.lastMessage.content) {
               // If lastMessage is an object, extract the content
               lastMessage = data.lastMessage.content;
               lastMessageSender = data.lastMessage.senderName || data.lastMessageSender || '';
+              lastMessageSenderRole = data.lastMessage.senderRole || '';
             } else if (typeof data.lastMessage === 'string') {
               // If lastMessage is already a string, use it directly
               lastMessage = data.lastMessage;
@@ -708,6 +710,7 @@ export class EnhancedMessageService {
             lastActivity: data.lastActivity?.toDate() || new Date(),
             lastMessage: lastMessage,
             lastMessageSender: lastMessageSender,
+            lastMessageSenderRole: lastMessageSenderRole, // Add sender role for filtering
             isEscalated: data.isEscalated || false,
             escalatedAt: data.escalatedAt?.toDate() || null,
             escalatedBy: data.escalatedBy,
