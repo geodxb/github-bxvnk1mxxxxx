@@ -806,10 +806,10 @@ export class EnhancedMessageService {
   ): () => void {
     console.log('🔄 Setting up real-time listener for enhanced messages in collection:', conversationId);
     
+    // Use simple query without orderBy to avoid index requirements
     const messagesQuery = query(
       collection(db, 'affiliateMessages'),
-      where('conversationId', '==', conversationId),
-      orderBy('createdAt', 'asc')
+      where('conversationId', '==', conversationId)
     );
     
     const unsubscribe = onSnapshot(
@@ -818,51 +818,26 @@ export class EnhancedMessageService {
         try {
           console.log('🔄 Enhanced messages updated in real-time:', querySnapshot.docs.length);
           
-          // Log each message found
-          querySnapshot.docs.forEach((doc, index) => {
-            const data = doc.data();
-            console.log(`📨 Enhanced message ${index + 1} (${doc.id}):`, {
-              senderId: data.senderId,
-              senderName: data.senderName,
-              senderRole: data.senderRole,
-              content: data.content?.substring(0, 50) + '...',
-              timestamp: data.timestamp,
-              createdAt: data.createdAt
-            });
-          });
-          
           const messages = querySnapshot.docs.map(doc => {
             try {
               const data = doc.data();
               
-              // Basic validation - only check for senderId
-              if (!data.senderId) {
-                console.error('❌ Enhanced message missing senderId:', { docId: doc.id });
+              // Validate required fields
+              if (!data.senderId || !data.senderName || (!data.content && (!data.attachments || data.attachments.length === 0))) {
+                console.error('❌ Invalid enhanced message data:', { docId: doc.id, data });
                 return null;
               }
               
               return {
                 id: doc.id,
                 ...data,
-                senderName: data.senderName || 'Unknown User',
-                senderRole: data.senderRole || 'investor',
-                content: data.content || '',
-                timestamp: data.timestamp?.toDate() || data.createdAt?.toDate() || new Date(),
-                createdAt: data.createdAt?.toDate() || new Date(),
+                timestamp: data.timestamp?.toDate() || new Date(),
                 editedAt: data.editedAt?.toDate() || null,
                 readBy: data.readBy?.map((read: any) => ({
                   ...read,
                   readAt: read.readAt?.toDate() || new Date()
                 })) || [],
-                attachments: data.attachments || [],
-                conversationId: data.conversationId || conversationId,
-                priority: data.priority || 'medium',
-                status: data.status || 'sent',
-                department: data.department || null,
-                replyTo: data.replyTo || null,
-                isEscalation: data.isEscalation || false,
-                escalationReason: data.escalationReason || null,
-                messageType: data.messageType || 'text'
+                attachments: data.attachments || []
               };
             } catch (docError) {
               console.error('❌ Error processing enhanced message document:', docError, { docId: doc.id });
@@ -870,17 +845,13 @@ export class EnhancedMessageService {
             }
           }).filter(Boolean) as EnhancedMessage[];
           
-          console.log('✅ Enhanced messages processed:', messages.length);
-          messages.forEach((msg, index) => {
-            console.log(`📨 Enhanced processed message ${index + 1}:`, {
-              id: msg.id,
-              sender: `${msg.senderName} (${msg.senderRole})`,
-              content: msg.content?.substring(0, 50) + '...',
-              timestamp: msg.timestamp
-            });
-          });
+          // Sort messages by timestamp in JavaScript
+          const sortedMessages = messages.sort((a, b) => 
+            a.timestamp.getTime() - b.timestamp.getTime()
+          );
           
-          callback(messages);
+          console.log('✅ Enhanced messages processed and sorted:', sortedMessages.length);
+          callback(sortedMessages);
         } catch (error) {
           console.error('❌ Error in enhanced messages snapshot listener:', error);
           callback([]);
@@ -888,11 +859,6 @@ export class EnhancedMessageService {
       },
       (error) => {
         console.error('❌ Real-time listener failed for enhanced messages:', error);
-        console.error('❌ Enhanced query details:', {
-          collection: 'affiliateMessages',
-          conversationId,
-          orderBy: 'createdAt'
-        });
         callback([]);
       }
     );
