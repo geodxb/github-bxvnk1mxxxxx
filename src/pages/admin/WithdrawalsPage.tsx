@@ -173,38 +173,31 @@ const WithdrawalsPage = () => {
       key: 'bankDetails',
       header: 'Destination',
       render: (_: any, row: any) => {
-        console.log('🔍 Withdrawal row data:', {
-          id: row.id,
-          withdrawalType: row.withdrawalType,
-          cryptoWalletAddress: row.cryptoWalletAddress,
-          cryptoCoinType: row.cryptoCoinType,
-          cryptoNetworkType: row.cryptoNetworkType,
-          transactionHash: row.transactionHash
-        });
-        
         // Check if this is a crypto withdrawal
         if (row.withdrawalType === 'crypto') {
           return (
-            <div className="space-y-2">
-              <div className="flex items-center space-x-2">
-                <Wallet size={14} className="text-purple-600" />
-                <p className="text-sm font-bold text-gray-900 uppercase tracking-wide">
-                  {row.cryptoCoinType || 'CRYPTO'} WALLET
+            <div className="text-right">
+              <div className="space-y-1">
+                <div className="flex items-center justify-end space-x-2">
+                  <Wallet size={14} className="text-purple-600" />
+                  <p className="text-sm font-bold text-gray-900">
+                    {row.cryptoCoinType || 'CRYPTO'}
+                  </p>
+                </div>
+                <p className="text-xs text-gray-600">
+                  {row.cryptoNetworkType || 'BLOCKCHAIN'}
                 </p>
+                {row.cryptoWalletAddress && (
+                  <p className="text-xs text-gray-500 font-mono">
+                    {row.cryptoWalletAddress.slice(0, 8)}...{row.cryptoWalletAddress.slice(-6)}
+                  </p>
+                )}
+                {row.transactionHash && (
+                  <p className="text-xs text-green-600 font-mono">
+                    Hash: {row.transactionHash.slice(0, 8)}...
+                  </p>
+                )}
               </div>
-              <p className="text-xs text-gray-600 uppercase tracking-wide">
-                {row.cryptoNetworkType || 'BLOCKCHAIN'} NETWORK
-              </p>
-              {row.cryptoWalletAddress && (
-                <p className="text-xs text-gray-500 font-mono">
-                  {row.cryptoWalletAddress.slice(0, 8)}...{row.cryptoWalletAddress.slice(-6)}
-                </p>
-              )}
-              {row.transactionHash && (
-                <p className="text-xs text-green-600 font-mono">
-                  Hash: {row.transactionHash.slice(0, 8)}...
-                </p>
-              )}
             </div>
           );
         }
@@ -223,21 +216,23 @@ const WithdrawalsPage = () => {
         }
         
         return (
-          <div className="space-y-2">
-            <p className="text-sm text-gray-900">
-              {bankInfo?.bankName || 'Bank Transfer'}
-            </p>
-            <p className="text-xs text-gray-500">
-              {bankInfo?.currency ? 
-                `${bankInfo.currency} Transfer` : 
-                'External Transfer'
-              }
-            </p>
-            {bankInfo?.accountNumber && (
-              <p className="text-xs text-gray-400">
-                Account: ***{bankInfo.accountNumber.slice(-4)}
+          <div className="text-right">
+            <div className="space-y-1">
+              <p className="text-sm font-bold text-gray-900">
+                {bankInfo?.bankName || 'Bank Transfer'}
               </p>
-            )}
+              <p className="text-xs text-gray-600">
+                {bankInfo?.currency ? 
+                  `${bankInfo.currency}` : 
+                  'USD'
+                }
+              </p>
+              {bankInfo?.accountNumber && (
+                <p className="text-xs text-gray-500">
+                  ***{bankInfo.accountNumber.slice(-4)}
+                </p>
+              )}
+            </div>
           </div>
         );
       }
