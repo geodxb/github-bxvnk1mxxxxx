@@ -647,28 +647,34 @@ export class EnhancedMessageService {
     console.log('🔄 Setting up real-time listener for enhanced conversations for userId:', userId);
     
     // Query BOTH conversations and affiliateMessages collections to find all conversations
-    const conversationsQuery = query(collection(db, 'conversations'));
+    const conversationsQuery = query(
+      collection(db, 'conversations'),
+      orderBy('updatedAt', 'desc')
+    );
     
     const unsubscribe = onSnapshot(
       conversationsQuery,
       (querySnapshot) => {
-        console.log('🔄 RAW Firebase conversations snapshot:', querySnapshot.docs.length, 'documents found');
+        console.log('🔄 RAW Firebase enhanced conversations snapshot:', querySnapshot.docs.length, 'documents found');
+        console.log('🎯 Looking for conversation BBZTQC4luu3mFfwEs1EY in enhanced service');
         
         // Log each raw document
         querySnapshot.docs.forEach((doc, index) => {
           const data = doc.data();
-          console.log(`📄 Document ${index + 1}:`, {
+          console.log(`📄 Enhanced Document ${index + 1} (${doc.id}):`, {
             id: doc.id,
             title: data.title,
             participants: data.participants,
-            participantNames: data.participantNames,
+            participantDetails: data.participantDetails,
             lastMessage: data.lastMessage,
-            lastActivity: data.lastActivity
+            lastActivity: data.lastActivity,
+            updatedAt: data.updatedAt,
+            isTargetConversation: doc.id === 'BBZTQC4luu3mFfwEs1EY'
           });
         });
         
         if (querySnapshot.docs.length === 0) {
-          console.log('❌ NO CONVERSATIONS FOUND IN FIREBASE');
+          console.log('❌ NO ENHANCED CONVERSATIONS FOUND IN FIREBASE');
           callback([]);
           return;
         }
@@ -676,7 +682,9 @@ export class EnhancedMessageService {
         const allConversations = querySnapshot.docs.map(doc => {
           const data = doc.data();
           
-          console.log(`🔍 Processing conversation ${doc.id}:`, data);
+          if (doc.id === 'BBZTQC4luu3mFfwEs1EY') {
+            console.log('🎯 PROCESSING TARGET CONVERSATION:', data);
+          }
           
           // Ensure lastMessage and lastMessageSender are always strings
           let lastMessage = '';
@@ -694,17 +702,46 @@ export class EnhancedMessageService {
             }
           }
           
+          // Extract participant names from participantDetails
+          let participantNames = [];
+          if (data.participantDetails && Array.isArray(data.participantDetails)) {
+            participantNames = data.participantDetails.map((p: any) => p.name || p.id);
+          } else if (data.participantNames && Array.isArray(data.participantNames)) {
+            participantNames = data.participantNames;
+          } else if (data.participants && Array.isArray(data.participants)) {
+            participantNames = data.participants;
+          }
+          
+          // Create participants array from participantDetails
+          let participants = [];
+          if (data.participantDetails && Array.isArray(data.participantDetails)) {
+            participants = data.participantDetails.map((p: any) => ({
+              id: p.id,
+              name: p.name,
+              role: p.role,
+              joinedAt: new Date()
+            }));
+          } else {
+            // Fallback to basic structure
+            participants = (data.participants || []).map((id: string, index: number) => ({
+              id,
+              name: participantNames[index] || id,
+              role: 'investor',
+              joinedAt: new Date()
+            }));
+          }
+          
           return {
             id: doc.id,
-            type: data.type || 'admin_investor', // Changed 'admin_affiliate' to 'admin_investor'
+            type: data.type || 'admin_investor',
             title: data.title || 'Conversation',
             description: data.description,
-            participants: data.participants || [],
-            participantNames: data.participantNames || [],
-            participantRoles: data.participantRoles || [],
+            participants: participants,
+            participantNames: participantNames,
+            participantRoles: participants.map(p => p.role),
             createdBy: data.createdBy || '',
             createdAt: data.createdAt?.toDate() || new Date(),
-            lastActivity: data.lastActivity?.toDate() || new Date(),
+            lastActivity: data.updatedAt?.toDate() || data.lastActivity?.toDate() || new Date(),
             lastMessage: lastMessage,
             lastMessageSender: lastMessageSender,
             isEscalated: data.isEscalated || false,
@@ -720,39 +757,39 @@ export class EnhancedMessageService {
               timestamp: entry.timestamp?.toDate() || new Date()
             })) || []
           };
-        }).filter(conv => 
-          conv.participants.some((p: ConversationParticipant) => p.id === userId)
-        ) as ConversationMetadata[];
+        }) as ConversationMetadata[];
         
-        console.log('📊 Processed conversations:', allConversations.length);
-        allConversations.forEach((conv, index) => {
-          console.log(`📋 Conversation ${index + 1}:`, {
-            id: conv.id,
-            title: conv.title,
-            participants: conv.participants,
-            participantNames: conv.participantNames,
-            lastMessage: conv.lastMessage
-          });
+        console.log('📊 All processed conversations:', allConversations.length);
+        console.log('🎯 Target conversation in processed list:', allConversations.some(c => c.id === 'BBZTQC4luu3mFfwEs1EY'));
+        
+        // Apply filtering based on user role
+        const filteredConversations = allConversations.filter(conv => {
+          if (conv.id === 'BBZTQC4luu3mFfwEs1EY') {
+            console.log('🎯 FILTERING TARGET CONVERSATION:', {
+              id: conv.id,
+              title: conv.title,
+              participants: conv.participants,
+              userRole,
+              userId,
+              shouldShow: userRole === 'governor' || conv.participants.some(p => p.id === userId)
+            });
+          }
+          
+          // Governor sees ALL conversations
+          if (userRole === 'governor') {
+            return true;
+          }
+          
+          // Other users see only conversations they participate in
+          return conv.participants.some(p => p.id === userId);
         });
         
-        // For now, show ALL conversations to debug the issue
-        console.log('🔄 Showing ALL conversations for debugging');
-        const sortedConversations = allConversations.sort((a, b) => 
+        const sortedConversations = filteredConversations.sort((a, b) => 
           b.lastActivity.getTime() - a.lastActivity.getTime()
         );
         
-        console.log('✅ Final sorted conversations:', sortedConversations.length);
-        sortedConversations.forEach((conv, index) => {
-          console.log(`📋 Final conversation ${index + 1}:`, {
-            id: conv.id,
-            title: conv.title,
-            participants: conv.participants,
-            participantNames: conv.participantNames,
-            lastMessage: conv.lastMessage,
-            lastActivity: conv.lastActivity
-          });
-        });
-        
+        console.log('✅ Final filtered conversations:', sortedConversations.length);
+        console.log('🎯 Target conversation in final list:', sortedConversations.some(c => c.id === 'BBZTQC4luu3mFfwEs1EY'));
         callback(sortedConversations);
       },
       (error) => {

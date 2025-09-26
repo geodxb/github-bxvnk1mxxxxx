@@ -133,9 +133,24 @@ const EnhancedConversationList = ({
           </div>
         ) : (
           <div className="space-y-1 p-2">
+            {/* Debug info for target conversation */}
+            {console.log('🎯 RENDERING CONVERSATIONS:', filteredConversations.map(c => ({ id: c.id, title: c.title })))}
+            {console.log('🎯 TARGET CONVERSATION IN RENDER LIST:', filteredConversations.some(c => c.id === 'BBZTQC4luu3mFfwEs1EY'))}
+            
             {filteredConversations.map((conversation) => {
               const otherParticipants = getOtherParticipants(conversation);
               const isUnread = conversation.lastMessageSender !== user?.name;
+              
+              // Special logging for target conversation
+              if (conversation.id === 'BBZTQC4luu3mFfwEs1EY') {
+                console.log('🎯 RENDERING TARGET CONVERSATION:', {
+                  id: conversation.id,
+                  title: conversation.title,
+                  lastMessage: conversation.lastMessage,
+                  participants: conversation.participants,
+                  otherParticipants
+                });
+              }
 
               return (
                 <motion.button
@@ -152,7 +167,7 @@ const EnhancedConversationList = ({
                     {/* Conversation Title */}
                     <div className="flex items-center justify-between">
                       <h4 className="font-semibold text-gray-900 text-lg">
-                        {conversation.title || 'help'}
+                        {conversation.title || 'Conversation'}
                       </h4>
                       <span className="text-xs text-gray-500 font-medium">
                         {formatTime(conversation.lastActivity)}
@@ -179,10 +194,7 @@ const EnhancedConversationList = ({
                     
                     {/* Message Preview */}
                     <div className="text-gray-600 text-sm">
-                      {typeof conversation.lastMessage === 'string' && conversation.lastMessage ? 
-                        conversation.lastMessage : 
-                        'hola'
-                      }
+                      {conversation.lastMessage || 'No messages yet'}
                     </div>
                     
                     {/* Timestamp */}

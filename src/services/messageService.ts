@@ -509,37 +509,44 @@ export class MessageService {
       console.log('👑 Governor accessing ALL conversations for oversight');
       conversationsQuery = query(
         collection(db, 'conversations'),
-        orderBy('createdAt', 'desc')
+        orderBy('updatedAt', 'desc')
       );
     } else {
       // Regular users only see their own conversations
       conversationsQuery = query(
         collection(db, 'conversations'),
         where('participants', 'array-contains', userId),
-        orderBy('createdAt', 'desc')
+        orderBy('updatedAt', 'desc')
       );
     }
     
     const unsubscribe = onSnapshot(
       conversationsQuery,
       (querySnapshot) => {
-        console.log(`🔄 Conversations updated in real-time for ${userRole === 'governor' ? 'GOVERNOR (ALL)' : 'USER'}: ${querySnapshot.docs.length} conversations`);
+        console.log(`🔄 RAW CONVERSATIONS FOUND: ${querySnapshot.docs.length} documents`);
+        console.log(`🔄 Looking for conversation ID: BBZTQC4luu3mFfwEs1EY`);
         
         // Log each conversation found
         querySnapshot.docs.forEach((doc, index) => {
           const data = doc.data();
-          console.log(`📋 Conversation ${index + 1} (${doc.id}):`, {
+          console.log(`📋 RAW Conversation ${index + 1} (${doc.id}):`, {
             title: data.title,
             participants: data.participants,
             participantDetails: data.participantDetails,
             lastMessage: data.lastMessage,
             department: data.department,
-            recipientType: data.recipientType
+            recipientType: data.recipientType,
+            isTargetConversation: doc.id === 'BBZTQC4luu3mFfwEs1EY'
           });
         });
         
         const conversations = querySnapshot.docs.map(doc => {
           const data = doc.data();
+          
+          // Special logging for the target conversation
+          if (doc.id === 'BBZTQC4luu3mFfwEs1EY') {
+            console.log('🎯 FOUND TARGET CONVERSATION BBZTQC4luu3mFfwEs1EY:', data);
+          }
           
           // Handle new structure with lastMessage as object
           let lastMessage = '';
@@ -587,21 +594,34 @@ export class MessageService {
             recipientType: data.recipientType || 'admin',
             updatedAt: data.updatedAt?.toDate() || data.createdAt?.toDate() || new Date()
           };
-        }).filter(conv => {
+        }) as Conversation[];
+        
+        // Apply filtering AFTER mapping
+        const filteredConversations = conversations.filter(conv => {
+          // Special logging for target conversation
+          if (conv.id === 'BBZTQC4luu3mFfwEs1EY') {
+            console.log('🎯 FILTERING TARGET CONVERSATION:', {
+              id: conv.id,
+              title: conv.title,
+              participants: conv.participants,
+              userRole,
+              userId,
+              shouldShow: userRole === 'governor' || conv.participants.includes(userId)
+            });
+          }
+          
           // For governor, show ALL conversations
           if (userRole === 'governor') {
-            console.log(`👑 Governor viewing conversation: ${conv.id} - ${conv.title}`);
             return true;
           }
           
           // For admin/investor, show only conversations they participate in
-          const isParticipant = conv.participants.includes(userId);
-          console.log(`👤 User ${userId} participant check for ${conv.id}:`, isParticipant);
-          return isParticipant;
-        }) as Conversation[];
+          return conv.participants.includes(userId);
+        });
         
-        console.log(`✅ Final conversations for ${userRole || 'user'}:`, conversations.length);
-        callback(conversations);
+        console.log(`✅ Final conversations for ${userRole || 'user'}:`, filteredConversations.length);
+        console.log('🎯 Target conversation in final list:', filteredConversations.some(c => c.id === 'BBZTQC4luu3mFfwEs1EY'));
+        callback(filteredConversations);
       },
       (error) => {
         console.error('❌ Real-time listener failed for conversations:', error);
