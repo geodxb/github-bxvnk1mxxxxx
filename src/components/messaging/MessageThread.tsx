@@ -34,12 +34,6 @@ const MessageThread = ({ conversationId, recipientName }: MessageThreadProps) =>
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    console.log('🔍 MessageThread: conversationId =', conversationId);
-    console.log('🔍 MessageThread: messages =', messages);
-    console.log('🔍 MessageThread: loading =', loading);
-  }, [conversationId, messages, loading]);
-
-  useEffect(() => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }

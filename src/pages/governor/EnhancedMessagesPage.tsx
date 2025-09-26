@@ -4,13 +4,12 @@ import EnhancedConversationList from '../../components/messaging/EnhancedConvers
 import EnhancedMessageThread from '../../components/messaging/EnhancedMessageThread';
 import { EnhancedMessageService } from '../../services/enhancedMessageService';
 import { useAuth } from '../../contexts/AuthContext';
-import { useAvailableRecipients, useEnhancedConversations } from '../../hooks/useEnhancedMessages';
+import { useAvailableRecipients } from '../../hooks/useEnhancedMessages';
 import { ConversationMetadata } from '../../types/conversation';
-import { MessageSquare, Send, Users, Shield, Building, TriangleAlert as AlertTriangle, DollarSign, User, Crown, Eye } from 'lucide-react';
+import { MessageSquare, Send, Users, Shield, Building, AlertTriangle, DollarSign, User, Crown, Eye } from 'lucide-react';
 
 const GovernorEnhancedMessagesPage = () => {
   const { user } = useAuth();
-  const { conversations: enhancedConversations } = useEnhancedConversations(user?.id || '', user?.role);
   const { recipients, loading: recipientsLoading } = useAvailableRecipients(
     user?.id || '', 
     'governor'

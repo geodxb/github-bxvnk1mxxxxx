@@ -316,7 +316,7 @@ export class MessageService {
     const messagesQuery = query(
       collection(db, 'affiliateMessages'),
       where('conversationId', '==', conversationId),
-      orderBy('createdAt', 'asc')
+      orderBy('timestamp', 'asc')
     );
     
     const unsubscribe = onSnapshot(
@@ -329,24 +329,17 @@ export class MessageService {
             try {
               const data = doc.data();
               
-              console.log('📨 Processing message:', doc.id, data);
+              // Validate required fields
+              if (!data.senderId || (!data.content && (!data.attachments || data.attachments.length === 0))) {
+                console.error('❌ Invalid regular message data:', { docId: doc.id, data });
+                return null;
+              }
               
               return {
                 id: doc.id,
                 ...data,
-                senderId: data.senderId || '',
                 senderName: data.senderName || 'Unknown User',
                 senderRole: data.senderRole || 'investor',
-                content: data.content || '',
-                conversationId: data.conversationId || conversationId,
-                replyTo: data.replyTo || null,
-                priority: data.priority || 'medium',
-                status: data.status || 'sent',
-                department: data.department || null,
-                isEscalation: data.isEscalation || false,
-                escalationReason: data.escalationReason || null,
-                readBy: data.readBy || [],
-                messageType: data.messageType || 'text',
                 timestamp: data.timestamp?.toDate() || new Date(),
                 createdAt: data.createdAt?.toDate() || new Date(),
                 attachments: data.attachments || []
@@ -355,7 +348,7 @@ export class MessageService {
               console.error('❌ Error processing regular message document:', docError, { docId: doc.id });
               return null;
             }
-          }).filter(msg => msg !== null) as AffiliateMessage[];
+          }).filter(Boolean) as AffiliateMessage[];
           
           console.log('✅ Regular messages processed:', messages.length);
           callback(messages);
@@ -475,35 +468,28 @@ export class MessageService {
   ): () => void {
     console.log('🔄 Setting up real-time listener for conversations for user:', userId);
     
-    const conversationsQuery = query(
-      collection(db, 'conversations'),
-      orderBy('updatedAt', 'desc')
-    );
+    let conversationsQuery;
+    
+    if (userRole === 'governor') {
+      // Governor can see ALL conversations
+      console.log('👑 Governor accessing ALL conversations for oversight');
+      conversationsQuery = query(
+        collection(db, 'conversations'),
+        orderBy('updatedAt', 'desc')
+      );
+    } else {
+      // Regular users only see their own conversations
+      conversationsQuery = query(
+        collection(db, 'conversations'),
+        where('participants', 'array-contains', userId),
+        orderBy('updatedAt', 'desc')
+      );
+    }
     
     const unsubscribe = onSnapshot(
       conversationsQuery,
       (querySnapshot) => {
-        console.log(`🔄 Conversations updated: ${querySnapshot.docs.length} total conversations`);
-        
-        // Log each conversation for debugging
-        querySnapshot.docs.forEach((doc, index) => {
-          const data = doc.data();
-          console.log(`📋 Raw Conversation ${index + 1} (${doc.id}):`, {
-            id: doc.id,
-            title: data.title,
-            participants: data.participants,
-            participantDetails: data.participantDetails,
-            department: data.department,
-            lastMessage: data.lastMessage,
-            updatedAt: data.updatedAt?.toDate()
-          });
-          
-          // Special logging for the missing conversation
-          if (doc.id === 'BBZTQC4luu3mFfwEs1EY') {
-            console.log('🎯 FOUND MISSING CONVERSATION BBZTQC4luu3mFfwEs1EY:', JSON.stringify(data, null, 2));
-          }
-        });
-        
+        console.log(`🔄 Conversations updated in real-time for ${userRole === 'governor' ? 'GOVERNOR (ALL)' : 'USER'}: ${querySnapshot.docs.length} conversations`);
         const conversations = querySnapshot.docs.map(doc => {
           const data = doc.data();
           
@@ -547,22 +533,7 @@ export class MessageService {
           };
         }) as Conversation[];
         
-        console.log(`✅ Processed ${conversations.length} conversations for role: ${userRole || 'unknown'}`);
-        
-        // Governor sees ALL conversations, others see only their own
-        if (userRole === 'governor') {
-          console.log('👑 Governor accessing ALL conversations for oversight');
-          callback(conversations);
-        } else {
-          // For non-governors, filter to only show conversations they participate in
-          const filteredConversations = conversations.filter(conv => {
-            const isParticipant = conv.participants.includes(userId);
-            console.log(`🔍 Conversation ${conv.id}: User ${userId} is participant? ${isParticipant}`);
-            return isParticipant;
-          });
-          console.log(`🔍 Filtered to ${filteredConversations.length} conversations for user ${userId}`);
-          callback(filteredConversations);
-        }
+        callback(conversations);
       },
       (error) => {
         console.error('❌ Real-time listener failed for conversations:', error);

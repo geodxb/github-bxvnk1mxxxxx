@@ -642,51 +642,51 @@ export class EnhancedMessageService {
   // Real-time listener for enhanced conversations
   static subscribeToEnhancedConversations(
     userId: string,
-    userRole: string,
     callback: (conversations: ConversationMetadata[]) => void
   ): () => void {
-    console.log('🔄 Setting up real-time listener for enhanced conversations for userId:', userId, 'Role:', userRole);
+    console.log('🔄 Setting up real-time listener for enhanced conversations for userId:', userId);
     
-    // Query ALL conversations
+    // Query BOTH conversations and affiliateMessages collections to find all conversations
     const conversationsQuery = query(collection(db, 'conversations'));
     
     const unsubscribe = onSnapshot(
       conversationsQuery,
       (querySnapshot) => {
-        console.log('🔄 Enhanced conversations snapshot:', querySnapshot.docs.length, 'documents found');
+        console.log('🔄 RAW Firebase conversations snapshot:', querySnapshot.docs.length, 'documents found');
         
         // Log each raw document
         querySnapshot.docs.forEach((doc, index) => {
           const data = doc.data();
-          console.log(`📄 Enhanced Conversation ${index + 1} (${doc.id}):`, {
+          console.log(`📄 Document ${index + 1}:`, {
             id: doc.id,
             title: data.title,
             participants: data.participants,
-            participantDetails: data.participantDetails,
+            participantNames: data.participantNames,
             lastMessage: data.lastMessage,
-            updatedAt: data.updatedAt
+            lastActivity: data.lastActivity
           });
-          
-          // Special logging for the missing conversation
-          if (doc.id === 'BBZTQC4luu3mFfwEs1EY') {
-            console.log('🎯 ENHANCED: FOUND MISSING CONVERSATION BBZTQC4luu3mFfwEs1EY:', JSON.stringify(data, null, 2));
-          }
         });
+        
+        if (querySnapshot.docs.length === 0) {
+          console.log('❌ NO CONVERSATIONS FOUND IN FIREBASE');
+          callback([]);
+          return;
+        }
         
         const allConversations = querySnapshot.docs.map(doc => {
           const data = doc.data();
           
+          console.log(`🔍 Processing conversation ${doc.id}:`, data);
+          
           // Ensure lastMessage and lastMessageSender are always strings
           let lastMessage = '';
           let lastMessageSender = '';
-          let lastActivity = data.updatedAt?.toDate() || new Date();
           
           if (data.lastMessage) {
             if (typeof data.lastMessage === 'object' && data.lastMessage.content) {
               // If lastMessage is an object, extract the content
               lastMessage = data.lastMessage.content;
               lastMessageSender = data.lastMessage.senderName || data.lastMessageSender || '';
-              lastActivity = data.lastMessage.createdAt?.toDate() || data.updatedAt?.toDate() || new Date();
             } else if (typeof data.lastMessage === 'string') {
               // If lastMessage is already a string, use it directly
               lastMessage = data.lastMessage;
@@ -694,45 +694,17 @@ export class EnhancedMessageService {
             }
           }
           
-          // Extract participant names from participantDetails or fallback to participants array
-          let participantNames = [];
-          if (data.participantDetails && Array.isArray(data.participantDetails)) {
-            participantNames = data.participantDetails.map((p: any) => p.name || 'Unknown');
-          } else if (data.participantNames && Array.isArray(data.participantNames)) {
-            participantNames = data.participantNames;
-          } else if (data.participants && Array.isArray(data.participants)) {
-            participantNames = data.participants;
-          }
-          
-          // Extract participants array
-          let participants = [];
-          if (data.participantDetails && Array.isArray(data.participantDetails)) {
-            participants = data.participantDetails.map((p: any) => ({
-              id: p.id || '',
-              name: p.name || 'Unknown',
-              role: p.role || 'investor',
-              joinedAt: new Date()
-            }));
-          } else if (data.participants && Array.isArray(data.participants)) {
-            participants = data.participants.map((id: string) => ({
-              id,
-              name: 'Unknown',
-              role: 'investor',
-              joinedAt: new Date()
-            }));
-          }
-          
           return {
             id: doc.id,
-            type: data.type || 'admin_investor',
-            title: data.title || 'Support Request',
+            type: data.type || 'admin_investor', // Changed 'admin_affiliate' to 'admin_investor'
+            title: data.title || 'Conversation',
             description: data.description,
-            participants: participants,
-            participantNames: participantNames,
-            participantRoles: participants.map((p: any) => p.role),
+            participants: data.participants || [],
+            participantNames: data.participantNames || [],
+            participantRoles: data.participantRoles || [],
             createdBy: data.createdBy || '',
             createdAt: data.createdAt?.toDate() || new Date(),
-            lastActivity: lastActivity,
+            lastActivity: data.lastActivity?.toDate() || new Date(),
             lastMessage: lastMessage,
             lastMessageSender: lastMessageSender,
             isEscalated: data.isEscalated || false,
@@ -742,28 +714,44 @@ export class EnhancedMessageService {
             status: data.status || 'active',
             priority: data.priority || 'medium',
             tags: data.tags || [],
-            department: data.department || null,
+            department: data.department,
             auditTrail: data.auditTrail?.map((entry: any) => ({
               ...entry,
               timestamp: entry.timestamp?.toDate() || new Date()
             })) || []
           };
-        }) as ConversationMetadata[];
+        }).filter(conv => 
+          conv.participants.some((p: ConversationParticipant) => p.id === userId)
+        ) as ConversationMetadata[];
         
-        // Governor sees ALL conversations, others see only their own
-        let finalConversations = allConversations;
-        if (userRole !== 'governor') {
-          finalConversations = allConversations.filter(conv => {
-            const isParticipant = conv.participants.some((p: any) => p.id === userId);
-            return isParticipant;
+        console.log('📊 Processed conversations:', allConversations.length);
+        allConversations.forEach((conv, index) => {
+          console.log(`📋 Conversation ${index + 1}:`, {
+            id: conv.id,
+            title: conv.title,
+            participants: conv.participants,
+            participantNames: conv.participantNames,
+            lastMessage: conv.lastMessage
           });
-        }
+        });
         
-        const sortedConversations = finalConversations.sort((a, b) => 
+        // For now, show ALL conversations to debug the issue
+        console.log('🔄 Showing ALL conversations for debugging');
+        const sortedConversations = allConversations.sort((a, b) => 
           b.lastActivity.getTime() - a.lastActivity.getTime()
         );
         
-        console.log(`✅ Final conversations for ${userRole}: ${sortedConversations.length}`);
+        console.log('✅ Final sorted conversations:', sortedConversations.length);
+        sortedConversations.forEach((conv, index) => {
+          console.log(`📋 Final conversation ${index + 1}:`, {
+            id: conv.id,
+            title: conv.title,
+            participants: conv.participants,
+            participantNames: conv.participantNames,
+            lastMessage: conv.lastMessage,
+            lastActivity: conv.lastActivity
+          });
+        });
         
         callback(sortedConversations);
       },
@@ -818,10 +806,10 @@ export class EnhancedMessageService {
   ): () => void {
     console.log('🔄 Setting up real-time listener for enhanced messages in collection:', conversationId);
     
+    // Use simple query without orderBy to avoid index requirements
     const messagesQuery = query(
       collection(db, 'affiliateMessages'),
-      where('conversationId', '==', conversationId),
-      orderBy('createdAt', 'asc')
+      where('conversationId', '==', conversationId)
     );
     
     const unsubscribe = onSnapshot(
@@ -829,33 +817,20 @@ export class EnhancedMessageService {
       (querySnapshot) => {
         try {
           console.log('🔄 Enhanced messages updated in real-time:', querySnapshot.docs.length);
-          console.log('🔍 Looking for messages in conversation:', conversationId);
-          
-          querySnapshot.docs.forEach(doc => {
-            console.log('📨 Found message:', doc.id, doc.data());
-          });
           
           const messages = querySnapshot.docs.map(doc => {
             try {
               const data = doc.data();
               
-              console.log('📨 Processing enhanced message:', doc.id, data);
+              // Validate required fields
+              if (!data.senderId || !data.senderName || (!data.content && (!data.attachments || data.attachments.length === 0))) {
+                console.error('❌ Invalid enhanced message data:', { docId: doc.id, data });
+                return null;
+              }
               
               return {
                 id: doc.id,
                 ...data,
-                conversationId: data.conversationId || conversationId,
-                senderId: data.senderId || '',
-                senderName: data.senderName || 'Unknown User',
-                senderRole: data.senderRole || 'investor',
-                content: data.content || '',
-                replyTo: data.replyTo || null,
-                priority: data.priority || 'medium',
-                status: data.status || 'sent',
-                department: data.department || null,
-                isEscalation: data.isEscalation || false,
-                escalationReason: data.escalationReason || null,
-                messageType: data.messageType || 'text',
                 timestamp: data.timestamp?.toDate() || new Date(),
                 editedAt: data.editedAt?.toDate() || null,
                 readBy: data.readBy?.map((read: any) => ({
@@ -868,9 +843,9 @@ export class EnhancedMessageService {
               console.error('❌ Error processing enhanced message document:', docError, { docId: doc.id });
               return null;
             }
-          }).filter(msg => msg !== null) as EnhancedMessage[];
+          }).filter(Boolean) as EnhancedMessage[];
           
-          // Sort messages by timestamp
+          // Sort messages by timestamp in JavaScript
           const sortedMessages = messages.sort((a, b) => 
             a.timestamp.getTime() - b.timestamp.getTime()
           );

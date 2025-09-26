@@ -67,7 +67,7 @@ export const useConversations = (userId: string) => {
     // Set up real-time listener
     console.log('🔄 Setting up real-time listener for conversations...');
     const unsubscribe = MessageService.subscribeToConversations(userId, (updatedConversations) => {
-      console.log(`🔄 Real-time update: Conversations updated for ${user?.role || 'unknown'} - Count: ${updatedConversations.length}`);
+      console.log(`🔄 Real-time update: Conversations updated for ${user?.role === 'governor' ? 'GOVERNOR (ALL)' : 'USER'}`);
       setConversations(updatedConversations);
       setLoading(false);
       setError(null);

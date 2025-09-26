@@ -57,16 +57,12 @@ const EnhancedMessageThread = ({
       enhancedMessagesCount: enhancedMessages.length,
       regularMessagesCount: regularMessages.length
     });
-    console.log('🔍 EnhancedMessageThread: conversationId =', conversationId);
-    console.log('🔍 EnhancedMessageThread: enhancedMessages =', enhancedMessages);
-    console.log('🔍 EnhancedMessageThread: regularMessages =', regularMessages);
     
     if (!enhancedLoading && !regularLoading) {
       try {
       const allMessagesList = [];
       
       enhancedMessages.forEach(msg => {
-        console.log('📨 Adding enhanced message:', msg.id, msg.content);
         allMessagesList.push({
           ...msg,
           source: 'enhanced'
@@ -85,8 +81,8 @@ const EnhancedMessageThread = ({
             return;
           }
           
+        console.log('📨 Processing enhanced messages...');
         if (!existsInEnhanced) {
-          console.log('📨 Adding regular message:', msg.id, msg.content);
           if (!msg || !msg.id) {
             console.error('❌ Invalid enhanced message found:', msg);
             return;
