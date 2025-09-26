@@ -31,7 +31,6 @@ export const useEnhancedConversations = (userId: string) => {
       console.log('🔄 Cleaning up real-time listener for conversations');
       unsubscribe();
     };
-  }, [userId]);
   }, [userId, user?.role]);
 
   return { conversations, loading, error };
