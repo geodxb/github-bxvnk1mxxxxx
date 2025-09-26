@@ -420,13 +420,14 @@ export class MessageService {
           // Handle new structure with lastMessage as object
           let lastMessage = '';
           let lastMessageSender = '';
-          let lastMessageTime = data.updatedAt || data.lastMessageTime;
+          let lastMessageTime = data.updatedAt;
           
           if (data.lastMessage) {
             if (typeof data.lastMessage === 'object' && data.lastMessage.content) {
               // New structure: lastMessage is an object
               lastMessage = data.lastMessage.content;
               lastMessageSender = data.lastMessage.senderName || '';
+              lastMessageTime = data.lastMessage.createdAt || data.updatedAt;
             } else if (typeof data.lastMessage === 'string') {
               // Legacy structure: lastMessage is a string
               lastMessage = data.lastMessage;
@@ -437,20 +438,21 @@ export class MessageService {
           return {
             id: doc.id,
             participants: data.participants || [],
-            participantNames: data.participantDetails?.map((p: any) => p.name) || data.participantNames || [],
+            participantNames: data.participantDetails?.map((p: any) => p.name) || 
+                             data.participantNames || 
+                             data.participants || [],
             createdAt: data.createdAt?.toDate() || new Date(),
             lastActivity: lastMessageTime?.toDate() || new Date(),
             lastMessage: lastMessage,
             lastMessageSender: lastMessageSender,
             lastMessageTime: lastMessageTime?.toDate() || new Date(),
             adminId: data.adminId || '',
-            affiliateId: data.affiliateId || '',
+            investorId: data.investorId || data.affiliateId || '',
             title: data.title || '',
             department: data.department || null,
             urgency: data.urgency || 'low',
             isActive: data.isActive !== false,
             recipientType: data.recipientType || 'admin',
-            createdAt: data.createdAt?.toDate() || new Date(),
             updatedAt: data.updatedAt?.toDate() || new Date()
           };
         }) as Conversation[];
