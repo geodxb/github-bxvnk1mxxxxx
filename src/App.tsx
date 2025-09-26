@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
 import LoadingScreen from './components/common/LoadingScreen';
+import ErrorBoundary from './components/common/ErrorBoundary';
 // Removed: import ShadowBanCheck from './components/investor/ShadowBanCheck'; // Removed investor-specific component
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import PinEntryScreen from './pages/auth/PinEntryScreen';
@@ -80,153 +81,162 @@ function App() {
 
   return (
     <div className="App">
-      <Routes>
-        {/* Auth Routes */}
-        <Route path="/login" element={<AdminLogin />} />
-        {/* Removed: <Route path="/affiliate-login" element={<AffiliateLogin />} /> */}
-        
-        {/* Admin Routes */}
-        <Route path="/admin" element={
-          <ProtectedRoute role="admin">
-            <AdminDashboard />
-          </ProtectedRoute>
-        } />
-        <Route path="/admin/investors" element={
-          <ProtectedRoute role="admin">
-            <InvestorsListPage />
-          </ProtectedRoute>
-        } />
-        <Route path="/admin/investor/:id" element={
-          <ProtectedRoute role="admin">
-            <InvestorProfile />
-          </ProtectedRoute>
-        } />
-        <Route path="/admin/withdrawals" element={
-          <ProtectedRoute role="admin">
-            <WithdrawalsPage />
-          </ProtectedRoute>
-        } />
-        <Route path="/admin/commissions" element={
-          <ProtectedRoute role="admin">
-            <CommissionsPage />
-          </ProtectedRoute>
-        } />
-        <Route path="/admin/settings" element={
-          <ProtectedRoute role="admin">
-            <SettingsPage />
-          </ProtectedRoute>
-        } />
-        <Route path="/admin/messages" element={
-          <ProtectedRoute role="admin">
-            <EnhancedMessagesPage />
-          </ProtectedRoute>
-        } />
-        
-        {/* Removed: Investor Routes */}
-        {/* Removed: <Route path="/investor" element={
-          <ProtectedRoute role="investor">
-            <ShadowBanCheck>
-              <InvestorDashboard />
-            </ShadowBanCheck>
-          </ProtectedRoute>
-        } /> */}
-        {/* Removed: <Route path="/investor/messages" element={
-          <ProtectedRoute role="investor">
-            <ShadowBanCheck>
-              <MessagesPage />
-            </ShadowBanCheck>
-          </ProtectedRoute>
-        } /> */}
-        
-        {/* Governor Routes */}
-        <Route path="/governor" element={
-          <ProtectedRoute role="governor">
-            <GovernorDashboard />
-          </ProtectedRoute>
-        } />
-        <Route path="/governor/investors" element={
-          <ProtectedRoute role="governor">
-            <GovernorInvestorsPage />
-          </ProtectedRoute>
-        } />
-        <Route path="/governor/investor/:id" element={
-          <ProtectedRoute role="governor">
-            <GovernorInvestorProfile />
-          </ProtectedRoute>
-        } />
-        <Route path="/governor/withdrawals" element={
-          <ProtectedRoute role="governor">
-            <GovernorWithdrawalsPage />
-          </ProtectedRoute>
-        } />
-        <Route path="/governor/account-management" element={
-          <ProtectedRoute role="governor">
-            <GovernorAccountManagementPage />
-          </ProtectedRoute>
-        } />
-        <Route path="/governor/deletion-approvals" element={
-          <ProtectedRoute role="governor">
-            <GovernorDeletionApprovalsPage />
-          </ProtectedRoute>
-        } />
-        <Route path="/governor/messages" element={
-          <ProtectedRoute role="governor">
-            <GovernorEnhancedMessagesPage />
-          </ProtectedRoute>
-        } />
-        <Route path="/governor/config" element={
-          <ProtectedRoute role="governor">
-            <GovernorConfigPage />
-          </ProtectedRoute>
-        } />
-        <Route path="/governor/security" element={
-          <ProtectedRoute role="governor">
-            <GovernorSecurityPage />
-          </ProtectedRoute>
-        } />
-        <Route path="/governor/logs" element={
-          <ProtectedRoute role="governor">
-            <GovernorLogsPage />
-          </ProtectedRoute>
-        } />
-        <Route path="/governor/system-monitoring" element={
-          <ProtectedRoute role="governor">
-            <GovernorSystemMonitoringPage />
-          </ProtectedRoute>
-        } />
-        <Route path="/governor/system-controls" element={
-          <ProtectedRoute role="governor">
-            <GovernorSystemControlsPage />
-          </ProtectedRoute>
-        } />
-        <Route path="/governor/database" element={
-          <ProtectedRoute role="governor">
-            <GovernorDatabasePage />
-          </ProtectedRoute>
-        } />
-        <Route path="/governor/support-tickets" element={
-          <ProtectedRoute role="governor">
-            <GovernorSupportTicketsPage />
-          </ProtectedRoute>
-        } />
-        <Route path="/governor/account-requests" element={
-          <ProtectedRoute role="governor">
-            <AccountCreationRequests />
-          </ProtectedRoute>
-        } />
-        
-        {/* Default redirects */}
-        <Route path="/" element={
-          user ? (
-            <Navigate to={
-              user.role === 'governor' ? '/governor' :
-              user.role === 'admin' ? '/admin' : '/login' // Changed: Removed investor redirect
-            } replace />
-          ) : (
-            <Navigate to="/login" replace />
-          )
-        } />
-      </Routes>
+      <ErrorBoundary 
+        fallbackTitle="MESSAGING SYSTEM ERROR"
+        fallbackMessage="The messaging interface encountered an error and needs to be reloaded"
+      >
+        <Routes>
+          {/* Auth Routes */}
+          <Route path="/login" element={<AdminLogin />} />
+          {/* Removed: <Route path="/affiliate-login" element={<AffiliateLogin />} /> */}
+          
+          {/* Admin Routes */}
+          <Route path="/admin" element={
+            <ProtectedRoute role="admin">
+              <AdminDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/investors" element={
+            <ProtectedRoute role="admin">
+              <InvestorsListPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/investor/:id" element={
+            <ProtectedRoute role="admin">
+              <InvestorProfile />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/withdrawals" element={
+            <ProtectedRoute role="admin">
+              <WithdrawalsPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/commissions" element={
+            <ProtectedRoute role="admin">
+              <CommissionsPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/settings" element={
+            <ProtectedRoute role="admin">
+              <SettingsPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/messages" element={
+            <ProtectedRoute role="admin">
+              <ErrorBoundary fallbackTitle="MESSAGING ERROR" fallbackMessage="The messaging system encountered an error">
+                <EnhancedMessagesPage />
+              </ErrorBoundary>
+            </ProtectedRoute>
+          } />
+          
+          {/* Removed: Investor Routes */}
+          {/* Removed: <Route path="/investor" element={
+            <ProtectedRoute role="investor">
+              <ShadowBanCheck>
+                <InvestorDashboard />
+              </ShadowBanCheck>
+            </ProtectedRoute>
+          } /> */}
+          {/* Removed: <Route path="/investor/messages" element={
+            <ProtectedRoute role="investor">
+              <ShadowBanCheck>
+                <MessagesPage />
+              </ShadowBanCheck>
+            </ProtectedRoute>
+          } /> */}
+          
+          {/* Governor Routes */}
+          <Route path="/governor" element={
+            <ProtectedRoute role="governor">
+              <GovernorDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/governor/investors" element={
+            <ProtectedRoute role="governor">
+              <GovernorInvestorsPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/governor/investor/:id" element={
+            <ProtectedRoute role="governor">
+              <GovernorInvestorProfile />
+            </ProtectedRoute>
+          } />
+          <Route path="/governor/withdrawals" element={
+            <ProtectedRoute role="governor">
+              <GovernorWithdrawalsPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/governor/account-management" element={
+            <ProtectedRoute role="governor">
+              <GovernorAccountManagementPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/governor/deletion-approvals" element={
+            <ProtectedRoute role="governor">
+              <GovernorDeletionApprovalsPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/governor/messages" element={
+            <ProtectedRoute role="governor">
+              <ErrorBoundary fallbackTitle="GOVERNOR MESSAGING ERROR" fallbackMessage="The governor messaging system encountered an error">
+                <GovernorEnhancedMessagesPage />
+              </ErrorBoundary>
+            </ProtectedRoute>
+          } />
+          <Route path="/governor/config" element={
+            <ProtectedRoute role="governor">
+              <GovernorConfigPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/governor/security" element={
+            <ProtectedRoute role="governor">
+              <GovernorSecurityPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/governor/logs" element={
+            <ProtectedRoute role="governor">
+              <GovernorLogsPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/governor/system-monitoring" element={
+            <ProtectedRoute role="governor">
+              <GovernorSystemMonitoringPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/governor/system-controls" element={
+            <ProtectedRoute role="governor">
+              <GovernorSystemControlsPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/governor/database" element={
+            <ProtectedRoute role="governor">
+              <GovernorDatabasePage />
+            </ProtectedRoute>
+          } />
+          <Route path="/governor/support-tickets" element={
+            <ProtectedRoute role="governor">
+              <GovernorSupportTicketsPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/governor/account-requests" element={
+            <ProtectedRoute role="governor">
+              <AccountCreationRequests />
+            </ProtectedRoute>
+          } />
+          
+          {/* Default redirects */}
+          <Route path="/" element={
+            user ? (
+              <Navigate to={
+                user.role === 'governor' ? '/governor' :
+                user.role === 'admin' ? '/admin' : '/login' // Changed: Removed investor redirect
+              } replace />
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          } />
+        </Routes>
+      </ErrorBoundary>
     </div>
   );
 }

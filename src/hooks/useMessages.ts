@@ -13,13 +13,32 @@ export const useMessages = (conversationId: string) => {
       return;
     }
 
+    console.log('🔄 useMessages: Setting up listener for conversation:', conversationId);
+    
     // Set up real-time listener
-    console.log('🔄 Setting up real-time listener for messages...');
     const unsubscribe = MessageService.subscribeToMessages(conversationId, (updatedMessages) => {
-      console.log('🔄 Real-time update: Messages updated');
-      setMessages(updatedMessages);
-      setLoading(false);
-      setError(null);
+      try {
+        console.log('🔄 Real-time update: Regular messages updated:', updatedMessages.length);
+        
+        // Validate messages before setting state
+        const validMessages = updatedMessages.filter(msg => {
+          if (!msg || !msg.id || !msg.timestamp) {
+            console.error('❌ Invalid regular message found:', msg);
+            return false;
+          }
+          return true;
+        });
+        
+        console.log('✅ Valid regular messages after filtering:', validMessages.length);
+        setMessages(validMessages);
+        setLoading(false);
+        setError(null);
+      } catch (error) {
+        console.error('❌ Error processing regular messages update:', error);
+        setMessages([]);
+        setLoading(false);
+        setError('Failed to load messages');
+      }
     });
 
     // Cleanup listener on unmount

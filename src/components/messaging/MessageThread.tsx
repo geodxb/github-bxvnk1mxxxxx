@@ -310,6 +310,7 @@ const MessageThread = ({ conversationId, recipientName }: MessageThreadProps) =>
                         ATTACHMENTS ({message.attachments.length}):
                       </p>
                       {message.attachments.map((attachment, index) => {
+                        try {
                         const attachmentData = typeof attachment === 'string' 
                           ? { url: attachment, name: `Attachment ${index + 1}`, type: 'unknown', size: 0 }
                           : attachment;
@@ -360,6 +361,12 @@ const MessageThread = ({ conversationId, recipientName }: MessageThreadProps) =>
                                     target.style.display = 'none';
                                     if (target.parentElement) {
                                       target.parentElement.innerHTML = '<div class="p-4 text-center text-gray-500">Image could not be displayed</div>';
+                          // Validate attachment data
+                          if (!attachmentData || !attachmentData.url) {
+                            console.error('❌ Invalid attachment data in MessageThread:', attachmentData);
+                            return null;
+                          }
+                          
                                     }
                                   }}
                                 />
@@ -404,6 +411,14 @@ const MessageThread = ({ conversationId, recipientName }: MessageThreadProps) =>
                                   <Download size={14} />
                                 </button>
                               </div>
+                            </div>
+                          );
+                        }
+                        } catch (attachmentError) {
+                          console.error('❌ Error rendering attachment in MessageThread:', attachmentError, { attachment, index });
+                          return (
+                            <div key={index} className="p-3 bg-red-50 border border-red-200 rounded text-xs text-red-700">
+                              Error displaying attachment {index + 1}
                             </div>
                           );
                         }

@@ -71,7 +71,15 @@ const EnhancedMessageThread = ({
 
   // Merge and sort messages from both collections
   useEffect(() => {
+    console.log('🔄 EnhancedMessageThread: Processing messages...', {
+      enhancedLoading,
+      regularLoading,
+      enhancedMessagesCount: enhancedMessages.length,
+      regularMessagesCount: regularMessages.length
+    });
+    
     if (!enhancedLoading && !regularLoading) {
+      try {
       const allMessagesList = [];
       
       enhancedMessages.forEach(msg => {
@@ -88,13 +96,24 @@ const EnhancedMessageThread = ({
            eMsg.content === msg.content)
         );
         
+          if (!msg || !msg.id) {
+            console.error('❌ Invalid regular message found:', msg);
+            return;
+          }
+          
+        console.log('📨 Processing enhanced messages...');
         if (!existsInEnhanced) {
+          if (!msg || !msg.id) {
+            console.error('❌ Invalid enhanced message found:', msg);
+            return;
+          }
           allMessagesList.push({
             ...msg,
             source: 'regular',
             senderRole: msg.senderRole || 'affiliate',
             priority: msg.priority || 'medium',
             status: msg.status || 'sent',
+        console.log('📨 Processing regular messages...');
             readBy: [],
             messageType: 'text',
             isEscalation: false
@@ -102,13 +121,21 @@ const EnhancedMessageThread = ({
         }
       });
       
+        console.log('📊 Sorting messages...', { totalMessages: allMessagesList.length });
       const sorted = allMessagesList.sort((a, b) => 
         new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
       );
       
+        console.log('✅ Messages processed successfully:', sorted.length);
       setAllMessages(sorted);
       setLoading(false);
+      } catch (error) {
+        console.error('❌ Error processing messages:', error);
+        setAllMessages([]);
+        setLoading(false);
+      }
     } else {
+      console.log('⏳ Still loading messages...', { enhancedLoading, regularLoading });
       setLoading(true);
     }
   }, [enhancedMessages, regularMessages, enhancedLoading, regularLoading]);
@@ -579,6 +606,7 @@ const EnhancedMessageThread = ({
                           ATTACHMENTS ({message.attachments.length}):
                         </p>
                         {message.attachments.map((attachment, index) => {
+                          try {
                           // Handle both string URLs and attachment objects
                           let attachmentData;
                           if (typeof attachment === 'string') {
@@ -596,6 +624,12 @@ const EnhancedMessageThread = ({
                           } else {
                             attachmentData = attachment;
                           }
+                            // Validate attachment data
+                            if (!attachmentData || !attachmentData.url) {
+                              console.error('❌ Invalid attachment data:', attachmentData);
+                              return null;
+                            }
+                            
                           
                           // Enhanced image detection
                           const isImage = attachmentData.type?.startsWith('image/') || 
@@ -703,6 +737,14 @@ const EnhancedMessageThread = ({
                               )}
                             </div>
                           );
+                          } catch (attachmentError) {
+                            console.error('❌ Error rendering attachment:', attachmentError, { attachment, index });
+                            return (
+                              <div key={index} className="p-3 bg-red-50 border border-red-200 rounded text-xs text-red-700">
+                                Error displaying attachment {index + 1}
+                              </div>
+                            );
+                          }
                         })}
                       </div>
                     )}

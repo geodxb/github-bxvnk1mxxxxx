@@ -259,18 +259,38 @@ export class MessageService {
     const unsubscribe = onSnapshot(
       messagesQuery,
       (querySnapshot) => {
-        console.log('🔄 Messages updated in real-time');
-        const messages = querySnapshot.docs.map(doc => {
-          const data = doc.data();
-          return {
-            id: doc.id,
-            ...data,
-            timestamp: data.timestamp?.toDate() || new Date(),
-            createdAt: data.createdAt?.toDate() || new Date()
-          };
-        }) as AffiliateMessage[];
-        
-        callback(messages);
+        try {
+          console.log('🔄 Regular messages updated in real-time:', querySnapshot.docs.length);
+          
+          const messages = querySnapshot.docs.map(doc => {
+            try {
+              const data = doc.data();
+              
+              // Validate required fields
+              if (!data.senderId || !data.senderName || !data.content) {
+                console.error('❌ Invalid regular message data:', { docId: doc.id, data });
+                return null;
+              }
+              
+              return {
+                id: doc.id,
+                ...data,
+                timestamp: data.timestamp?.toDate() || new Date(),
+                createdAt: data.createdAt?.toDate() || new Date(),
+                attachments: data.attachments || []
+              };
+            } catch (docError) {
+              console.error('❌ Error processing regular message document:', docError, { docId: doc.id });
+              return null;
+            }
+          }).filter(Boolean) as AffiliateMessage[];
+          
+          console.log('✅ Regular messages processed:', messages.length);
+          callback(messages);
+        } catch (error) {
+          console.error('❌ Error in regular messages snapshot listener:', error);
+          callback([]);
+        }
       },
       (error) => {
         console.error('❌ Real-time listener failed for messages:', error);

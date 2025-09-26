@@ -46,13 +46,32 @@ export const useEnhancedMessages = (conversationId: string) => {
       return;
     }
 
+    console.log('🔄 useEnhancedMessages: Setting up listener for conversation:', conversationId);
+    
     // Set up real-time listener
-    console.log('🔄 Setting up real-time listener for enhanced messages:', conversationId);
     const unsubscribe = EnhancedMessageService.subscribeToEnhancedMessages(conversationId, (updatedMessages) => {
-      console.log('🔄 Real-time update: Enhanced messages updated:', updatedMessages.length);
-      setMessages(updatedMessages);
-      setLoading(false);
-      setError(null);
+      try {
+        console.log('🔄 Real-time update: Enhanced messages updated:', updatedMessages.length);
+        
+        // Validate messages before setting state
+        const validMessages = updatedMessages.filter(msg => {
+          if (!msg || !msg.id || !msg.timestamp) {
+            console.error('❌ Invalid message found:', msg);
+            return false;
+          }
+          return true;
+        });
+        
+        console.log('✅ Valid messages after filtering:', validMessages.length);
+        setMessages(validMessages);
+        setLoading(false);
+        setError(null);
+      } catch (error) {
+        console.error('❌ Error processing enhanced messages update:', error);
+        setMessages([]);
+        setLoading(false);
+        setError('Failed to load messages');
+      }
     });
 
     // Cleanup listener on unmount

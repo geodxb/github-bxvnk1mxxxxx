@@ -796,28 +796,47 @@ export class EnhancedMessageService {
     const unsubscribe = onSnapshot(
       messagesQuery,
       (querySnapshot) => {
-        console.log('🔄 Enhanced messages updated in real-time:', querySnapshot.docs.length);
-        const messages = querySnapshot.docs.map(doc => {
-          const data = doc.data();
-          return {
-            id: doc.id,
-            ...data,
-            timestamp: data.timestamp?.toDate() || new Date(),
-            editedAt: data.editedAt?.toDate() || null,
-            readBy: data.readBy?.map((read: any) => ({
-              ...read,
-              readAt: read.readAt?.toDate() || new Date()
-            })) || []
-          };
-        }) as EnhancedMessage[];
-        
-        // Sort messages by timestamp in JavaScript
-        const sortedMessages = messages.sort((a, b) => 
-          a.timestamp.getTime() - b.timestamp.getTime()
-        );
-        
-        console.log('✅ Enhanced messages sorted:', sortedMessages.length);
-        callback(sortedMessages);
+        try {
+          console.log('🔄 Enhanced messages updated in real-time:', querySnapshot.docs.length);
+          
+          const messages = querySnapshot.docs.map(doc => {
+            try {
+              const data = doc.data();
+              
+              // Validate required fields
+              if (!data.senderId || !data.senderName || !data.content) {
+                console.error('❌ Invalid enhanced message data:', { docId: doc.id, data });
+                return null;
+              }
+              
+              return {
+                id: doc.id,
+                ...data,
+                timestamp: data.timestamp?.toDate() || new Date(),
+                editedAt: data.editedAt?.toDate() || null,
+                readBy: data.readBy?.map((read: any) => ({
+                  ...read,
+                  readAt: read.readAt?.toDate() || new Date()
+                })) || [],
+                attachments: data.attachments || []
+              };
+            } catch (docError) {
+              console.error('❌ Error processing enhanced message document:', docError, { docId: doc.id });
+              return null;
+            }
+          }).filter(Boolean) as EnhancedMessage[];
+          
+          // Sort messages by timestamp in JavaScript
+          const sortedMessages = messages.sort((a, b) => 
+            a.timestamp.getTime() - b.timestamp.getTime()
+          );
+          
+          console.log('✅ Enhanced messages processed and sorted:', sortedMessages.length);
+          callback(sortedMessages);
+        } catch (error) {
+          console.error('❌ Error in enhanced messages snapshot listener:', error);
+          callback([]);
+        }
       },
       (error) => {
         console.error('❌ Real-time listener failed for enhanced messages:', error);
