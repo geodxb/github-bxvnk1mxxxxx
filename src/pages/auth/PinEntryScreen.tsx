@@ -402,6 +402,18 @@ const PinEntryScreen = ({ onAuthenticated }: PinEntryScreenProps) => {
               <span className="text-black">
                 {ipAccessDenied ? `IP: ${clientIP}` : 'Secure Terminal Active'}
               </span>
+              <button
+                onClick={() => window.open('https://affiliate-desk.crisdoraodxb.workers.dev/', '_blank')}
+                className="px-2 py-1 border bg-white text-black text-xs hover:bg-gray-100 transition-colors"
+                style={{
+                  borderTopColor: '#ffffff',
+                  borderLeftColor: '#ffffff',
+                  borderRightColor: '#808080',
+                  borderBottomColor: '#808080'
+                }}
+              >
+                AFFILIATE DESK
+              </button>
             </div>
             <div className="flex items-center space-x-2">
               <div 
